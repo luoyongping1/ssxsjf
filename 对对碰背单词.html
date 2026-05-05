@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>直播对对碰背单词</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <style>
+        :root {
+            /* 奶油INS风 配色 */
+            --bg-grad: linear-gradient(135deg, #fdfbf7 0%, #f5ece5 100%);
+            --cream-white: rgba(255, 255, 255, 0.7);
+            --glass-bg: rgba(255, 255, 255, 0.5);
+            --glass-border: rgba(255, 255, 255, 0.8);
+            --shadow: 0 8px 32px rgba(180, 160, 150, 0.15);
+            --text-main: #5a4b41;
+            --text-sub: #8c7a6e;
+            
+            --blue: #D0E4F5;
+            --pink: #F5D0DE;
+            --yellow: #FDF5C9;
+            --green: #D1EEDC;
+            --red: #FFCCCB;
+            --orange: #FFE4B5;
+--cyan: #B2FFFF; /* 加了青色 */
+
+--btn-blue: #a3c9ea;
+            --btn-pink: #e6a8bc;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'PingFang SC', 'Helvetica Neue', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg-grad); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; justify-content: center; }
+
+        /* 手机端容器限制 */
+        #app { width: 100%; max-width: 430px; height: 100%; position: relative; background-size: cover; background-position: center; transition: background 0.5s; overflow: hidden;}
+        
+        /* 毛玻璃通用类 */
+        .glass { background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 24px; box-shadow: var(--shadow); }
+        .btn { padding: 10px 20px; border-radius: 20px; border: none; font-weight: bold; color: #fff; cursor: pointer; transition: transform 0.2s; }
+        .btn:active { transform: scale(0.95); }
+
+        /* --- 首页UI (抖音直播间风格优化) --- */
+        .host-info { position: absolute; top: calc(env(safe-area-inset-top) + 15px); left: 15px; display: flex; align-items: center; padding: 4px 12px 4px 4px; border-radius: 30px; z-index: 100; gap: 8px; background: rgba(0,0,0,0.2); color: #fff; backdrop-filter: blur(5px); max-width: 180px; }
+        .host-info .avatar { width: 32px; height: 32px; min-width: 32px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid #ffdeeb; }
+        .host-info .host-detail { display: flex; flex-direction: column; overflow: hidden; }
+        .host-info .name { font-size: 11px; font-weight: bold; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .host-info .status { font-size: 9px; opacity: 0.9; white-space: nowrap; }
+        .host-info .follow-btn { background: #ff4d8d; color: #fff; padding: 4px 8px; border-radius: 20px; font-size: 9px; font-weight: bold; margin-left: 2px; cursor: pointer; flex-shrink: 0; }
+
+        .viewer-stats { position: absolute; top: calc(env(safe-area-inset-top) + 15px); left: 205px; display: flex; align-items: center; padding: 4px 10px; border-radius: 20px; z-index: 100; font-size: 10px; font-weight: bold; gap: 4px; background: rgba(0,0,0,0.2); color: #fff; backdrop-filter: blur(5px); }
+
+        .top-right-menu { position: absolute; top: calc(env(safe-area-inset-top) + 15px); right: 15px; z-index: 100; display: flex; align-items: center; gap: 10px; }
+        .close-view-btn { width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; background: rgba(0,0,0,0.2) !important; color: #fff !important; backdrop-filter: blur(5px); }
+        .menu-btn { width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; color: #fff; background: rgba(0,0,0,0.2); backdrop-filter: blur(5px); }
+        .menu-dropdown { position: absolute; top: 40px; right: 0; padding: 10px; display: none; flex-direction: column; gap: 10px; width: 150px; }
+        .menu-dropdown.active { display: flex; animation: fadeIn 0.3s; }
+        .menu-item { padding: 10px; text-align: center; border-radius: 12px; font-size: 14px; cursor: pointer; background: rgba(255,255,255,0.8); }
+
+        .bottom-right-icons { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 20px); right: 15px; display: flex; flex-direction: row; gap: 12px; z-index: 90; }
+        .icon-btn { width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; flex-direction: column; background: rgba(0,0,0,0.2) !important; color: #fff !important; backdrop-filter: blur(5px); }
+        .icon-btn span { font-size: 8px; margin-top: 1px; font-weight: bold;}
+
+        /* 弹幕区 (仿直播间列表) */
+        .danmaku-container { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 85px); left: 15px; width: 70%; height: 180px; pointer-events: none; display: flex; flex-direction: column-reverse; gap: 6px; overflow: hidden; z-index: 50; }
+        .danmaku-item { position: relative; padding: 4px 12px; border-radius: 15px; font-size: 12px; width: fit-content; max-width: 100%; white-space: normal; line-break: anywhere; font-weight: bold; background: rgba(0,0,0,0.25); border: none; backdrop-filter: blur(8px); animation: chatIn 0.3s ease-out forwards; color: #fff; }
+        @keyframes chatIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* --- 弹窗UI (词库/订单) --- */
+        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.1); display: none; justify-content: center; align-items: center; z-index: 200; backdrop-filter: blur(3px); }
+        .modal-content { width: 85%; max-height: 70%; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; position: relative;}
+        .modal-header { display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: bold; }
+        .close-btn { background: none; border: none; font-size: 20px; color: var(--text-main); }
+        
+        .order-card { padding: 15px; border-radius: 16px; background: rgba(255,255,255,0.7); margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px;}
+        .order-info { font-size: 14px; }
+        .order-action { align-self: flex-end; background: var(--btn-blue); }
+
+        /* --- 游戏页面 (对对碰) --- */
+        #game-view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-grad); z-index: 50; display: none; flex-direction: column; align-items: center; padding-top: 50px; }
+        .game-header { width: 90%; display: flex; justify-content: space-between; padding: 15px 20px; margin-bottom: 30px; }
+        /* 优化布局：限制高度并居中 */
+.grid-9 { 
+    display: grid; 
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 12px; 
+    width: 95%; 
+    max-height: 60vh; /* 限制最大高度，防止卡片拉得过长 */
+    margin: 0 auto 20px auto; 
+}
+
+/* 增大单词字号，让卡片看起来更充实 */
+.word-text { 
+    font-size: 22px; 
+    font-weight: bold; 
+    text-align: center; 
+    word-break: break-all; 
+    margin-bottom: 8px;
+    color: #5a4b41;
+}
+
+/* 新增：释义的样式，初始为透明 */
+.word-meaning {
+    font-size: 14px; 
+    color: #a38d7d; 
+    margin-bottom: 15px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+/* 当卡片被判定后，释义显示出来 */
+.card.judged .word-meaning {
+    opacity: 1;
+}
+
+/* 插入这一段，用来显示小圆点 */
+.color-dot { 
+    position: absolute; 
+    top: 12px; 
+    left: 12px; 
+    width: 15px; 
+    height: 15px; 
+    border-radius: 50%; 
+    z-index: 10;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+}
+
+/* --- 以下是恢复的卡片形状和背景代码 --- */
+.card { 
+    width: 100%; 
+    height: 100%; 
+    perspective: 1000px; 
+    cursor: pointer; 
+    min-height: 140px; /* 保证卡片有足够高度 */
+}
+
+.card-inner { 
+    width: 100%; 
+    height: 100%; 
+    position: relative; 
+    transition: transform 0.6s; 
+    transform-style: preserve-3d; 
+}
+
+.card.flipped .card-inner { 
+    transform: rotateY(180deg); 
+}
+
+.card.matched { 
+    animation: popOut 0.5s forwards; 
+}
+
+.card-face { 
+    position: absolute; 
+    width: 100%; 
+    height: 100%; 
+    backface-visibility: hidden; 
+    border-radius: 20px; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; 
+    align-items: center; 
+    box-shadow: 0 8px 15px rgba(180, 160, 150, 0.1); 
+    border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* 卡背：糕点蓝 */
+.card-back { 
+    background: var(--blue); 
+}
+
+.card-back::after { 
+    content: '🎂'; 
+    font-size: 30px; 
+    opacity: 0.8; 
+}
+
+/* 卡面：奶油白 */
+.card-front { 
+    background: var(--cream-white); 
+    transform: rotateY(180deg); 
+    position: relative; 
+    padding: 10px; 
+    backdrop-filter: blur(5px);
+}
+/* --- 以上是恢复的代码 --- */
+
+.card-actions { position: absolute; bottom: 8px; display: flex; gap: 5px; width: 100%; justify-content: center; display: none; }
+        /* 认识之后不予立即隐藏按钮，以便操作"记错了" */
+        .card.flipped.judged .card-actions { display: flex; } 
+        .mini-btn { padding: 4px 8px; border-radius: 10px; border: none; font-size: 10px; color: #fff; cursor: pointer; }
+        .btn-know { background: var(--btn-blue); }
+        .btn-unknow { background: var(--btn-pink); }
+        .btn-spell { background: #E0C3FC; }
+        .btn-wrong { background: #ffcc00; color: #000 !important; } /* 记错了按钮样式 */
+
+        /* 拼写弹窗 */
+        #spell-modal .modal-content { align-items: center; text-align: center; }
+        .spell-input { width: 90%; padding: 15px; border-radius: 15px; border: 2px solid var(--glass-border); background: rgba(255,255,255,0.8); font-size: 18px; outline: none; margin: 15px 0; text-align: center; }
+        
+        /* 结单按钮 */
+        #finish-order-btn { display: none; margin-top: 30px; background: var(--btn-pink); font-size: 18px; padding: 15px 40px; }
+
+        /* 动画 */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes scrollLeft { from { transform: translateX(120%); } to { transform: translateX(-150%); } }
+        @keyframes popOut { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.8; } 100% { transform: scale(0); opacity: 0; } }
+        
+        textarea { width: 100%; height: 100px; border-radius: 12px; border: none; padding: 10px; outline: none; background: rgba(255,255,255,0.7); resize: none; margin-top: 10px;}
+
+        /* 词书列表样式 */
+        .book-item { padding: 12px 15px; border-radius: 14px; background: rgba(255,255,255,0.6); margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 14px; border: 2px solid transparent; transition: all 0.2s; }
+        .book-item.selected { border-color: var(--btn-blue); background: rgba(163,201,234,0.25); }
+        .book-item-name { font-weight: bold; color: var(--text-main); }
+        .book-item-count { font-size: 12px; color: var(--text-sub); }
+        .book-selected-tag { font-size: 12px; color: var(--btn-blue); font-weight: bold; }
+
+        /* 导入区域书名输入 */
+        .import-book-name-input { width: 100%; padding: 10px; border-radius: 12px; border: none; outline: none; background: rgba(255,255,255,0.7); font-size: 14px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- 主直播间 -->
+    <div id="main-view">
+        <!-- 抖音风格主播信息 -->
+        <div class="host-info">
+            <div class="avatar">🍩</div>
+            <div class="host-detail">
+                <span class="name">书书老师</span>
+                <span class="status">1.2w 本单奖励</span>
+            </div>
+            <div class="follow-btn">关注</div>
+        </div>
+
+        <!-- 观众统计 -->
+        <div class="viewer-stats">
+            <span>👤 8.5w</span>
+        </div>
+
+        <!-- 弹幕区 -->
+        <div class="danmaku-container" id="danmaku"></div>
+
+        <!-- 右上角菜单 -->
+        <div class="top-right-menu">
+            <div class="menu-btn" onclick="toggleMenu()">⋮</div>
+            <div class="menu-dropdown glass" id="main-menu">
+                <div class="menu-item" onclick="changeBg()">更换背景</div>
+                <div class="menu-item" onclick="forwardQQ()">转发至qq好友</div>
+                <div class="menu-item" onclick="openEndProgressSetting()">结束进度设置</div>
+                <div class="menu-item" onclick="toggleModeMenu()">背词模式 ▶</div>
+            </div>
+            <!-- 模式选择子菜单 -->
+            <div class="menu-dropdown glass" id="mode-menu" style="top: 140px;">
+                <div class="menu-item" id="mode-self" onclick="setMode('self')" style="background: var(--btn-blue); color:#fff">自查模式</div>
+                <div class="menu-item" id="mode-spell" onclick="setMode('spell')">拼写模式</div>
+            </div>
+        </div>
+
+        <!-- 右下角图标 -->
+        <div class="bottom-right-icons">
+            <div class="icon-btn glass" onclick="openModal('vocab-modal')">
+                📚<span>词库</span>
+            </div>
+            <div class="icon-btn glass" onclick="openOrderModal()">
+                🛒<span>购物车</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 游戏界面 (对对碰) -->
+    <div id="game-view">
+        <div class="game-header glass">
+            <div>进度: <span id="game-progress">0/0</span></div>
+            <div>碰数: <span id="game-pairs">0</span> 对</div>
+        </div>
+        <div class="grid-9" id="game-board">
+            <!-- 卡片由JS生成 -->
+        </div>
+        <button id="finish-order-btn" class="btn glass" onclick="finishOrder()">完成并结单</button>
+    </div>
+
+    <!-- 词库弹窗 -->
+    <div class="modal" id="vocab-modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <span>我的词库</span>
+                <div>
+                    <span style="font-size: 24px; cursor: pointer; margin-right: 15px;" onclick="showImport()">+</span>
+                    <button class="close-btn" onclick="closeModal('vocab-modal')">✕</button>
+                </div>
+            </div>
+            <div id="vocab-list" style="font-size: 14px; line-height: 1.8;"></div>
+            <div id="import-area" style="display: none;">
+                <input type="text" id="import-book-name" class="import-book-name-input" placeholder="词书名称（如：高中英语必修1）">
+                <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.5); border-radius: 12px;">
+                    <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 8px;">📎 上传文件提取单词（TXT / PDF / Word）</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="file" id="import-file" accept=".txt,.pdf,.doc,.docx" multiple style="flex: 1; font-size: 12px; color: var(--text-sub);">
+                        <button class="btn" style="background: var(--btn-blue); padding: 8px 14px; font-size: 13px;" onclick="parseUploadedFile()">读取</button>
+                    </div>
+                </div>
+                <textarea id="import-text" placeholder="粘贴单词文本，格式如：&#10;apple - 苹果&#10;banana - 香蕉"></textarea>
+                <button class="btn" style="background: var(--btn-blue); width: 100%; margin-top: 10px;" onclick="importVocab()">确定导入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 订单/购物车弹窗 -->
+    <div class="modal" id="order-modal">
+        <div class="modal-content glass">
+            <div class="modal-header">
+                <span>直播订单</span>
+                <div>
+                    <span style="font-size: 20px; cursor: pointer; margin-right: 15px;" onclick="generateOrders()">↻</span>
+                    <button class="close-btn" onclick="closeModal('order-modal')">✕</button>
+                </div>
+            </div>
+            <div id="order-list">
+                <!-- 订单卡片由JS生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 拼写弹窗 -->
+    <div class="modal" id="spell-modal">
+        <div class="modal-content glass" style="width: 70%;">
+            <div class="modal-header">
+                <span id="spell-meaning">中文释义</span>
+            </div>
+            <input type="text" id="spell-input" class="spell-input" placeholder="输入英文单词" autocomplete="off">
+            <button class="btn" style="background: var(--btn-blue); width: 100%;" onclick="checkSpelling()">确认拼写</button>
+        </div>
+    </div>
+
+    <!-- 结束进度设置弹窗 (白色毛玻璃) -->
+    <div class="modal" id="end-progress-modal">
+        <div class="modal-content glass" style="background: rgba(255,255,255,0.85); border: 1px solid #fff;">
+            <div class="modal-header">
+                <span>结束进度设置</span>
+                <button class="close-btn" onclick="closeModal('end-progress-modal')">✕</button>
+            </div>
+            <div style="font-size: 14px; color: var(--text-sub); margin-top: 10px;">当背单词数量达到设定的数值时，将自动强制结单。</div>
+            <input type="number" id="target-progress-input" class="spell-input" placeholder="设置目标进度 (如 20)" style="margin: 20px 0;">
+            <button class="btn" style="background: var(--btn-blue); width: 100%;" onclick="saveTargetProgress()">保存设置</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    /* --- 数据结构与配置 --- */
+
+    // 词书数据结构：多本词书
+    let vocabBooks = JSON.parse(localStorage.getItem('vocabBooks')) || null;
+    if (!vocabBooks) {
+        // 兼容旧版数据：若有旧vocab则迁移
+        const oldVocab = JSON.parse(localStorage.getItem('vocab'));
+        if (oldVocab && oldVocab.length > 0) {
+            vocabBooks = [{ name: '导入词书', words: oldVocab }];
+        } else {
+            vocabBooks = [{
+                name: '默认词书',
+                words: [
+                    { word: "apple", meaning: "苹果", reviewTime: 0, interval: 0 },
+                    { word: "banana", meaning: "香蕉", reviewTime: 0, interval: 0 },
+                    { word: "cat", meaning: "猫", reviewTime: 0, interval: 0 },
+                    { word: "dog", meaning: "狗", reviewTime: 0, interval: 0 },
+                    { word: "elephant", meaning: "大象", reviewTime: 0, interval: 0 },
+                    { word: "flower", meaning: "花", reviewTime: 0, interval: 0 },
+                    { word: "grape", meaning: "葡萄", reviewTime: 0, interval: 0 },
+                    { word: "house", meaning: "房子", reviewTime: 0, interval: 0 },
+                    { word: "ice", meaning: "冰", reviewTime: 0, interval: 0 }
+                ]
+            }];
+        }
+        localStorage.setItem('vocabBooks', JSON.stringify(vocabBooks));
+    }
+
+    // 当前选中的词书索引
+    let selectedBookIndex = parseInt(localStorage.getItem('selectedBookIndex')) || 0;
+    if (selectedBookIndex >= vocabBooks.length) selectedBookIndex = 0;
+
+    // 获取当前词书的单词列表
+    function getCurrentVocab() {
+        return vocabBooks[selectedBookIndex] ? vocabBooks[selectedBookIndex].words : [];
+    }
+
+    let mode = 'self'; // self 或 spell
+    const colors = ['var(--red)', 'var(--orange)', 'var(--yellow)', 'var(--green)', 'var(--cyan)'];
+    
+    // 当前游戏状态
+    let currentOrder = null;
+    let wordPool = [];          // 当前词书排序后的单词池
+    let wordPoolIndex = 0;      // 下一个要发的牌在wordPool中的位置
+    let totalWordsAllowed = 0;  // 本单允许发的总牌数（基础=rounds*9，对碰后+1/对）
+    let boardCards = [];
+    let pairsMatched = 0;
+    let wordsLearned = 0;
+    let learningStats = []; // 记录本次学习：认识/不认识
+    let targetProgress = parseInt(localStorage.getItem('targetProgress')) || 0; // 目标结束进度
+    let isEndingAlerted = false; // 是否已弹出结束通知
+    let wrongBuff = [];          // 记错了的单词缓冲池
+    
+    /* --- 界面交互逻辑 --- */
+    function toggleMenu() {
+        document.getElementById('main-menu').classList.toggle('active');
+        document.getElementById('mode-menu').classList.remove('active');
+    }
+    
+    function toggleModeMenu() {
+        document.getElementById('mode-menu').classList.toggle('active');
+    }
+
+    function setMode(newMode) {
+        mode = newMode;
+        document.getElementById('mode-self').style.background = mode === 'self' ? 'var(--btn-blue)' : 'transparent';
+        document.getElementById('mode-self').style.color = mode === 'self' ? '#fff' : 'var(--text-main)';
+        document.getElementById('mode-spell').style.background = mode === 'spell' ? 'var(--btn-blue)' : 'transparent';
+        document.getElementById('mode-spell').style.color = mode === 'spell' ? '#fff' : 'var(--text-main)';
+        toggleMenu();
+        fireDanmaku("系统", `已切换至${mode==='self'?'自查':'拼写'}模式`);
+    }
+
+    function changeBg() {
+        const url = prompt("请输入背景图片URL（留空恢复默认）:");
+        if(url) {
+            document.getElementById('app').style.backgroundImage = `url(${url})`;
+        } else {
+            document.getElementById('app').style.backgroundImage = 'none';
+        }
+        toggleMenu();
+    }
+
+    function forwardQQ() {
+        toggleMenu();
+        fireDanmaku("系统", "已将直播间转发给qq好友[奶油小熊]...");
+        setTimeout(() => {
+            fireDanmaku("奶油小熊 (QQ)", "哇！这个直播间好温柔，一起背单词冲冲冲！");
+        }, 1500);
+    }
+
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function openEndProgressSetting() {
+        toggleMenu();
+        document.getElementById('target-progress-input').value = targetProgress || '';
+        openModal('end-progress-modal');
+    }
+
+    function saveTargetProgress() {
+        const val = parseInt(document.getElementById('target-progress-input').value);
+        targetProgress = isNaN(val) ? 0 : val;
+        localStorage.setItem('targetProgress', targetProgress);
+        closeModal('end-progress-modal');
+        fireDanmaku("系统", targetProgress > 0 ? `已设置自动结单进度：${targetProgress}` : "已取消自动结单限制");
+    }
+
+    /* --- 词库管理 --- */
+    function renderVocab() {
+        const list = document.getElementById('vocab-list');
+        if (vocabBooks.length === 0) {
+            list.innerHTML = '<div style="color: var(--text-sub); text-align:center; padding: 20px;">暂无词书，请点击 + 导入</div>';
+            return;
+        }
+        list.innerHTML = vocabBooks.map((book, i) => `
+            <div class="book-item ${i === selectedBookIndex ? 'selected' : ''}" onclick="selectBook(${i})">
+                <div>
+                    <div class="book-item-name">📖 ${book.name}</div>
+                    <div class="book-item-count">${book.words.length} 个单词</div>
+                </div>
+                ${i === selectedBookIndex ? '<span class="book-selected-tag">✓ 当前</span>' : ''}
+            </div>
+        `).join('');
+    }
+
+    function selectBook(index) {
+        selectedBookIndex = index;
+        localStorage.setItem('selectedBookIndex', index);
+        renderVocab();
+        fireDanmaku("系统", `已切换词书：《${vocabBooks[index].name}》`);
+    }
+
+    function showImport() {
+        document.getElementById('import-area').style.display = 'block';
+    }
+
+    function importVocab() {
+        const text = document.getElementById('import-text').value;
+        const bookNameInput = document.getElementById('import-book-name').value.trim();
+        const bookName = bookNameInput || `词书${vocabBooks.length + 1}`;
+        const lines = text.split('\n');
+        let words = [];
+        lines.forEach(line => {
+            const parts = line.split(/[：:-]/);
+            if(parts.length >= 2) {
+                let partA = parts[0].trim();
+                let partB = parts[1].trim();
+                // 智能检测：如果前一部分包含中文且后一部分是英文，则互换位置，确保 word 属性存英文
+                if (/[\u4e00-\u9fa5]/.test(partA) && !/[\u4e00-\u9fa5]/.test(partB)) {
+                    words.push({ word: partB, meaning: partA, reviewTime: 0, interval: 0 });
+                } else {
+                    words.push({ word: partA, meaning: partB, reviewTime: 0, interval: 0 });
+                }
+            }
+        });
+        if (words.length > 0) {
+            vocabBooks.push({ name: bookName, words: words });
+            selectedBookIndex = vocabBooks.length - 1;
+            localStorage.setItem('vocabBooks', JSON.stringify(vocabBooks));
+            localStorage.setItem('selectedBookIndex', selectedBookIndex);
+            renderVocab();
+            fireDanmaku("系统", `成功导入词书《${bookName}》，共 ${words.length} 个单词`);
+        } else {
+            fireDanmaku("系统", "未识别到单词，请检查格式");
+        }
+        document.getElementById('import-text').value = '';
+        document.getElementById('import-book-name').value = '';
+        document.getElementById('import-area').style.display = 'none';
+    }
+
+    /* --- 订单逻辑 --- */
+    const names = ["QQ_软糖", "路人_A", "QQ_星空", "路人_B", "QQ_浅夏"];
+    function openOrderModal() {
+        generateOrders(false);
+        openModal('order-modal');
+    }
+    function generateOrders(force = true) {
+        const list = document.getElementById('order-list');
+        if(!force && list.innerHTML.trim() !== '') return;
+        
+        list.innerHTML = '';
+        for(let i=0; i<3; i++) {
+            const name = names[Math.floor(Math.random() * names.length)];
+            // 订单数量代表轮数（单数），1~3单
+            const rounds = Math.floor(Math.random() * 3 + 1);
+            const color = ['奶油粉', '薄荷绿', '天空蓝', '柠檬黄'][Math.floor(Math.random()*4)];
+            
+            const card = document.createElement('div');
+            card.className = 'order-card';
+            card.innerHTML = `
+                <div class="order-info">
+                    <strong>下单人：</strong>${name}<br>
+                    <strong>数量：</strong>${rounds}单（共发${rounds}轮，基础${rounds*9}张牌）<br>
+                    <strong>许愿色：</strong>${color}
+                </div>
+                <button class="btn order-action" onclick="pickOrder('${name}', ${rounds})">捡单</button>
+            `;
+            list.appendChild(card);
+        }
+    }
+
+    /* --- 对对碰核心玩法 --- */
+    function pickOrder(name, rounds) {
+        closeModal('order-modal');
+        currentOrder = { name, rounds };
+        document.getElementById('main-view').style.display = 'none';
+        document.getElementById('game-view').style.display = 'flex';
+        document.getElementById('finish-order-btn').style.display = 'none';
+        
+        wordsLearned = 0;
+        pairsMatched = 0;
+        learningStats = [];
+        isEndingAlerted = false;
+        wrongBuff = [];
+
+        // 每单=每轮=9张牌，N单基础发N*9张
+        totalWordsAllowed = rounds * 9;
+        wordPoolIndex = 0;
+
+        // 筛选单词：从当前词书按reviewTime排序作为牌池
+        const vocab = getCurrentVocab();
+        if(vocab.length === 0) {
+            alert("当前词书为空，请先导入单词！");
+            document.getElementById('game-view').style.display = 'none';
+            document.getElementById('main-view').style.display = 'block';
+            return;
+        }
+        wordPool = vocab.slice().sort((a, b) => a.reviewTime - b.reviewTime);
+
+        updateGameHeader();
+        
+        boardCards = new Array(9).fill(null);
+        fillBoard();
+    }
+
+    function updateGameHeader() {
+        document.getElementById('game-progress').innerText = `${wordsLearned}/${totalWordsAllowed}`;
+        document.getElementById('game-pairs').innerText = pairsMatched;
+        
+        // 结束进度检查
+        if(targetProgress > 0 && wordsLearned >= targetProgress && !isEndingAlerted) {
+            isEndingAlerted = true;
+            setTimeout(() => {
+                alert(`已达到预设进度 ${targetProgress}，准备结单！`);
+                finishOrder();
+            }, 1000);
+        }
+    }
+
+    function fillBoard() {
+        const board = document.getElementById('game-board');
+        board.innerHTML = '';
+        
+        for(let i = 0; i < 9; i++) {
+            // 如果这个格子是空的，尝试补一张牌
+            if(boardCards[i] === null) {
+                // 还有牌可发（未超过本单允许的总数，且牌池里还有词）
+                if(wordPoolIndex < totalWordsAllowed && wordPool.length > 0) {
+                    const wordObj = wordPool[wordPoolIndex % wordPool.length];
+                    wordPoolIndex++;
+                    boardCards[i] = {
+                        id: i,
+                        word: wordObj,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        state: 'hidden'
+                    };
+                }
+                // 否则此格留空（不渲染卡片）
+            }
+
+            // 渲染非空格子；null格子渲染空占位div保持grid布局
+            if(boardCards[i] !== null) {
+                renderCard(i, boardCards[i], board);
+                const el = document.getElementById(`card-${i}`);
+                // 保持状态
+                if(boardCards[i].state === 'flipped' || boardCards[i].state === 'judged') {
+                    el.classList.add('flipped');
+                    if(boardCards[i].state === 'judged') el.classList.add('judged');
+                }
+            } else {
+                // 空占位div：防止grid格子塌陷，只在额度耗尽时才留空
+                const placeholder = document.createElement('div');
+                placeholder.style.minHeight = '140px';
+                board.appendChild(placeholder);
+            }
+        }
+    }
+
+    function renderCard(index, cardData, container) {
+        const el = document.createElement('div');
+        el.className = 'card';
+        el.id = `card-${index}`;
+        
+        let actionHTML = '';
+        if(mode === 'self') {
+            actionHTML = `<button class="mini-btn btn-know" onclick="judgeCard(event, ${index}, true)">认识</button>
+                          <button class="mini-btn btn-unknow" onclick="judgeCard(event, ${index}, false)">不认识</button>`;
+        } else {
+            actionHTML = `<button class="mini-btn btn-spell" onclick="openSpell(event, ${index})">拼写</button>`;
+        }
+
+        el.innerHTML = `
+            <div class="card-inner">
+                <div class="card-face card-back"></div>
+                <div class="card-face card-front">
+                    <div class="color-dot" style="background: ${cardData.color}"></div>
+                    <div class="word-text">${cardData.word.word}</div>
+                    <!-- 这里的样式改为了 word-meaning 类名 -->
+                    <div class="word-meaning">${cardData.word.meaning}</div>
+                    <div class="card-actions">${actionHTML}</div>
+                </div>
+            </div>
+        `;
+        el.onclick = () => flipCard(index);
+        container.appendChild(el);
+    }
+
+    function flipCard(index) {
+        const card = boardCards[index];
+        if(!card || card.state !== 'hidden') return;
+        
+        card.state = 'flipped';
+        const el = document.getElementById(`card-${index}`);
+        el.classList.add('flipped');
+        
+        // 显示按钮
+        setTimeout(() => {
+            if(card.state === 'flipped') {
+                el.querySelector('.card-actions').style.display = 'flex';
+            }
+        }, 300);
+    }
+
+    function judgeCard(event, index, isKnown) {
+        if(event) event.stopPropagation(); // 阻止触发卡片翻转
+        const card = boardCards[index];
+        if(!card) return;
+        
+        card.state = 'judged';
+        const el = document.getElementById(`card-${index}`);
+        el.classList.add('judged');
+        
+        // 如果是认识模式，更新按钮为"记错了"
+        if(mode === 'self' && isKnown) {
+            const actions = el.querySelector('.card-actions');
+            actions.innerHTML = `<button class="mini-btn btn-wrong" onclick="markWrong(event, ${index})">记错了</button>`;
+        } else if(mode === 'self' && !isKnown) {
+            // 不认识则直接隐藏按钮
+            el.querySelector('.card-actions').style.display = 'none';
+        }
+
+        // 记录统计
+        learningStats.push({ word: card.word, isKnown, indexInStats: learningStats.length });
+        wordsLearned++;
+        updateGameHeader();
+        
+        // 延迟 800 毫秒再执行消除逻辑，给用户时间看一眼刚跳出来的中文释义
+        setTimeout(() => {
+            // 如果已经被标记为错且移除了（boardCards[index] === null），则不要触发checkMatch中的 activeCards 判断
+            if(boardCards[index] !== null) {
+                checkMatch();
+            }
+        }, 800);
+    }
+
+    function markWrong(event, index) {
+        if(event) event.stopPropagation();
+        const card = boardCards[index];
+        if(!card) return;
+
+        // 修改学习统计中的记录
+        const statsEntry = learningStats.find(s => s.word.word === card.word.word);
+        if(statsEntry) statsEntry.isKnown = false;
+
+        // 放入缓冲池，等待“下一轮”九张牌时再出现
+        wrongBuff.push(card.word);
+        // 更新允许的总牌数
+        totalWordsAllowed++;
+        
+        // 移除该卡片，但不立即补牌，保持本轮空位
+        const el = document.getElementById(`card-${index}`);
+        if(el) el.classList.add('matched');
+        boardCards[index] = null;
+        
+        updateGameHeader();
+        fireDanmaku("系统", `记错了：${card.word.word} 将在下轮出现`);
+    }
+
+    /* 拼写模式逻辑 */
+    let currentSpellIndex = -1;
+    let spellFirstTry = true;
+    function openSpell(event, index) {
+        event.stopPropagation();
+        currentSpellIndex = index;
+        spellFirstTry = true;
+        document.getElementById('spell-meaning').innerText = boardCards[index].word.meaning;
+        document.getElementById('spell-input').value = '';
+        openModal('spell-modal');
+        setTimeout(() => document.getElementById('spell-input').focus(), 100);
+    }
+
+    function checkSpelling() {
+        const input = document.getElementById('spell-input').value.trim().toLowerCase();
+        const target = boardCards[currentSpellIndex].word.word.toLowerCase();
+        
+        if(input === target) {
+            closeModal('spell-modal');
+            judgeCard({stopPropagation:()=>{}}, currentSpellIndex, spellFirstTry);
+        } else {
+            alert("拼写错误，请重新输入！");
+            document.getElementById('spell-input').value = '';
+            spellFirstTry = false; // 首次错误判定为不认识
+        }
+    }
+
+    function checkMatch() {
+        // 只统计桌面上有卡片的格子
+        const activeCards = boardCards.filter(c => c !== null);
+        
+        // 如果此桌已经由于“记错了”而清空，且没有处于judged状态的卡片，则视为本轮提前结束或等待处理
+        if(activeCards.length === 0) {
+            handleRoundEnd(0);
+            return;
+        }
+
+        // 检查桌面上的卡片是否全部判定完了
+        const allJudged = activeCards.every(c => c.state === 'judged');
+        if(!allJudged) return;
+
+        // 1. 进行对对碰消除
+        let colorMap = {};
+        activeCards.forEach(c => {
+            if(!colorMap[c.color]) colorMap[c.color] = [];
+            colorMap[c.color].push(c);
+        });
+
+        let matchedCount = 0;
+        for(let col in colorMap) {
+            while(colorMap[col].length >= 2) {
+                const pair = colorMap[col].splice(0, 2);
+                pair.forEach(p => {
+                    const el = document.getElementById(`card-${p.id}`);
+                    if(el) el.classList.add('matched');
+                    boardCards[p.id] = null; 
+                });
+                pairsMatched++;
+                matchedCount++;
+            }
+        }
+
+        updateGameHeader();
+
+        // 2. 延迟处理：判断是继续还是结束
+        setTimeout(() => {
+            handleRoundEnd(matchedCount);
+        }, 800);
+    }
+
+    function handleRoundEnd(matchedCount) {
+        // 如果本轮没有任何对碰碰上，或者桌面已清空
+        if(matchedCount === 0) {
+            // 将积压的错误单词插回单词池，确保“下一轮”即出现
+            if(wrongBuff.length > 0) {
+                // 插在当前索引处，保证下一次fillBoard能读到
+                wordPool.splice(wordPoolIndex, 0, ...wrongBuff);
+                wrongBuff = [];
+            }
+
+            // 检查是否所有允许的牌都已发完
+            if(wordPoolIndex >= totalWordsAllowed) {
+                // 进度完成且无颜色可对碰，正式结束本单
+                document.getElementById('game-board').innerHTML = '<h2 style="grid-column: 1/4; text-align:center; color: var(--text-main); margin-top: 50px;">本单已背完！🎉</h2>';
+                document.getElementById('finish-order-btn').style.display = 'block';
+                return;
+            }
+            // 进度未完成，清空棋盘继续发新一轮牌
+            boardCards = new Array(9).fill(null);
+            fillBoard();
+            return;
+        }
+
+        // 有对碰碰上：每碰一对加两张（补满碰掉的空位，保持棋盘满格）
+        totalWordsAllowed += matchedCount * 2;
+        updateGameHeader();
+
+        // 把桌上没碰掉的卡片翻回去（hidden状态）
+        boardCards.forEach((c, index) => {
+            if(c !== null) {
+                c.state = 'hidden';
+                const el = document.getElementById(`card-${index}`);
+                if(el) {
+                    el.classList.remove('flipped');
+                    el.classList.remove('judged');
+                    const actions = el.querySelector('.card-actions');
+                    if(actions) actions.style.display = 'none';
+                }
+            }
+        });
+
+        // 在空位补上应该发的牌，继续游戏
+        fillBoard(); 
+    }
+
+    /* --- 结单与记忆曲线 --- */
+    function finishOrder() {
+        // 艾宾浩斯记忆曲线简易更新
+        const now = Date.now();
+        // 间隔：5分, 30分, 12小时, 1天, 2天... (毫秒)
+        const intervals = [5*60*1000, 30*60*1000, 12*60*60*1000, 24*60*60*1000, 48*60*60*1000];
+        
+        const currentVocab = getCurrentVocab();
+        learningStats.forEach(stat => {
+            let vWord = currentVocab.find(v => v.word === stat.word.word);
+            if(vWord) {
+                if(stat.isKnown) {
+                    vWord.interval = Math.min(vWord.interval + 1, intervals.length - 1);
+                } else {
+                    vWord.interval = 0; // 忘掉归零
+                }
+                vWord.reviewTime = now + intervals[vWord.interval];
+            }
+        });
+        localStorage.setItem('vocabBooks', JSON.stringify(vocabBooks));
+
+        // 切回主页
+        document.getElementById('game-view').style.display = 'none';
+        document.getElementById('main-view').style.display = 'block';
+        
+        // 弹幕评价
+        const knownCount = learningStats.filter(s=>s.isKnown).length;
+        const rate = learningStats.length > 0 ? (knownCount / learningStats.length) * 100 : 0;
+        
+        setTimeout(() => fireDanmaku("系统", `结单！正确率 ${rate.toFixed(0)}%`), 500);
+        setTimeout(() => fireDanmaku(currentOrder.name, rate > 80 ? "太棒了！主播真厉害！💕" : "继续加油哦，下次一定行！✨"), 2000);
+    }
+
+    /* --- 弹幕系统 --- */
+    function fireDanmaku(sender, text) {
+        const container = document.getElementById('danmaku');
+        const el = document.createElement('div');
+        el.className = 'danmaku-item';
+        el.innerText = `${sender}: ${text}`;
+        el.style.top = `${Math.random() * 80}px`; // 随机高度
+        container.appendChild(el);
+        setTimeout(() => el.remove(), 6000); // 动画结束后移除
+    }
+
+    // 初始化渲染
+    renderVocab();
+    // 初始欢迎弹幕
+    setTimeout(() => fireDanmaku("系统", "欢迎来到直播对对碰！点右下角购物车接单吧~"), 1000);
+
+    /* --- 文件上传解析 --- */
+    async function parseUploadedFile() {
+        const fileInput = document.getElementById('import-file');
+        const files = fileInput.files;
+        if (!files || files.length === 0) { alert('请先选择文件'); return; }
+
+        for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+            const file = files[fileIndex];
+            const ext = file.name.split('.').pop().toLowerCase();
+            let text = '';
+
+            if (ext === 'txt') {
+                text = await file.text();
+            } else if (ext === 'pdf') {
+                try {
+                    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    let pages = [];
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const content = await page.getTextContent();
+                        pages.push(content.items.map(item => item.str).join(' '));
+                    }
+                    text = pages.join('\n');
+                } catch(e) {
+                    alert(`PDF文件《${file.name}》解析失败，请确认文件无加密保护`);
+                    continue;
+                }
+            } else if (ext === 'doc' || ext === 'docx') {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const result = await mammoth.extractRawText({ arrayBuffer });
+                    text = result.value;
+                } catch(e) {
+                    alert(`Word文件《${file.name}》解析失败，请尝试另存为.docx后重试`);
+                    continue;
+                }
+            } else {
+                alert(`文件《${file.name}》格式不支持，请上传 TXT、PDF 或 Word 文件`);
+                continue;
+            }
+
+            if (!text.trim()) {
+                alert(`未能从文件《${file.name}》中提取到文本内容`);
+                continue;
+            }
+
+            // 以文件名（去扩展名）作为词书名，直接自动导入
+            const bookName = file.name.replace(/\.[^/.]+$/, '');
+            const lines = text.trim().split('\n');
+            let words = [];
+            lines.forEach(line => {
+                const parts = line.split(/[：:-]/);
+                if(parts.length >= 2) {
+                    let partA = parts[0].trim();
+                    let partB = parts[1].trim();
+                    // 智能识别：中文：英文 格式
+                    if (/[\u4e00-\u9fa5]/.test(partA) && !/[\u4e00-\u9fa5]/.test(partB)) {
+                        words.push({ word: partB, meaning: partA, reviewTime: 0, interval: 0 });
+                    } else {
+                        words.push({ word: partA, meaning: partB, reviewTime: 0, interval: 0 });
+                    }
+                }
+            });
+
+            if (words.length > 0) {
+                vocabBooks.push({ name: bookName, words: words });
+                selectedBookIndex = vocabBooks.length - 1;
+                fireDanmaku("系统", `成功导入词书《${bookName}》，共 ${words.length} 个单词`);
+            } else {
+                fireDanmaku("系统", `文件《${file.name}》未识别到单词，请检查格式`);
+            }
+        }
+
+        localStorage.setItem('vocabBooks', JSON.stringify(vocabBooks));
+        localStorage.setItem('selectedBookIndex', selectedBookIndex);
+        renderVocab();
+        fileInput.value = '';
+        document.getElementById('import-area').style.display = 'none';
+    }
+
+</script>
+</body>
+</html>

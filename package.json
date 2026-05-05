@@ -1,0 +1,7 @@
+{
+  "name": "shushu-phone-push",
+  "version": "1.0.0",
+  "dependencies": {
+    "web-push": "^3.6.6"
+  }
+}

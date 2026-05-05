@@ -1,0 +1,4952 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>小红书 - 标记我的生活</title>
+    <!-- 引入图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+:root {
+    --xhs-red: #ff2442;
+    --xhs-black: #333333;
+    --xhs-gray: #999999;
+    --xhs-light-gray: #f5f5f5;
+    --xhs-bg: #ffffff;
+    --xhs-border: #eeeeee;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background-color: #f5f5f5; /* 改为浅灰背景，衬托白色卡片 */
+    color: var(--xhs-black);
+    overflow-x: hidden;
+    user-select: none;
+}
+
+#app {
+    max-width: 500px;
+    margin: 0 auto;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background-color: #f5f5f5;
+}
+
+/* 顶部导航 */
+.top-nav {
+    height: calc(44px + env(safe-area-inset-top));
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 8px;
+    box-sizing: border-box;
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 100;
+    border-bottom: 1px solid var(--xhs-border);
+}
+
+.nav-tabs {
+    display: flex;
+    gap: 20px;
+}
+
+.tab {
+    font-size: 16px;
+    color: var(--xhs-gray);
+    position: relative;
+    padding: 5px 0;
+}
+
+.tab.active {
+    color: var(--xhs-black);
+    font-weight: bold;
+}
+
+.tab.active::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 2px;
+    background-color: var(--xhs-red);
+}
+
+.search-icon {
+    position: absolute;
+    right: 15px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.menu-icon {
+    position: absolute;
+    left: 15px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+/* 侧边栏 */
+.sidebar {
+    position: fixed;
+    left: -250px;
+    top: 0;
+    width: 250px;
+    height: 100%;
+    background: #fff;
+    z-index: 2000;
+    transition: left 0.3s;
+    padding: 20px;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+.sidebar.active {
+    left: 0;
+}
+
+.sidebar-header {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--xhs-border);
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px 10px;
+    margin: 5px 0;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.sidebar-item:hover {
+    background-color: var(--xhs-light-gray);
+}
+
+.sidebar-item i {
+    width: 20px;
+    text-align: center;
+    color: #555;
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1999;
+}
+
+/* 消息页面样式 */
+.message-header {
+    height: calc(44px + env(safe-area-inset-top));
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 10px;
+    box-sizing: border-box;
+    font-weight: bold;
+    border-bottom: 1px solid var(--xhs-border);
+}
+
+.message-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.friend-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    gap: 12px;
+    border-bottom: 1px solid #f8f8f8;
+}
+
+.friend-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.friend-info {
+    flex: 1;
+}
+
+.friend-name {
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.friend-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.friend-post-btn {
+    background: var(--xhs-red);
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+.friend-last-msg {
+    font-size: 13px;
+    color: var(--xhs-gray);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.empty-tip {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--xhs-gray);
+    font-size: 14px;
+}
+
+/* “我的”页面样式 */
+.me-header {
+    padding: 20px;
+    background: #fff;
+    border-bottom: 1px solid #f8f8f8;
+}
+
+.me-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.avatar-container {
+    position: relative;
+    cursor: pointer;
+}
+
+.me-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.me-details h2 {
+    font-size: 20px;
+    margin-bottom: 5px;
+    outline: none;
+}
+
+.me-details p {
+    font-size: 12px;
+    color: var(--xhs-gray);
+}
+
+.me-stats {
+    display: flex;
+    gap: 30px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-num {
+    font-weight: bold;
+    font-size: 16px;
+    outline: none;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--xhs-gray);
+}
+
+.me-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--xhs-border);
+    background: #fff;
+}
+
+.me-tab {
+    flex: 1;
+    text-align: center;
+    padding: 12px 0;
+    font-size: 14px;
+    color: var(--xhs-gray);
+    cursor: pointer;
+}
+
+.me-tab.active {
+    color: var(--xhs-black);
+    font-weight: bold;
+    position: relative;
+}
+
+.me-tab.active::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 2px;
+    background: var(--xhs-red);
+}
+
+.notes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    padding: 5px;
+}
+
+/* 瀑布流内容 */
+.content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    gap: 10px;
+    padding-bottom: 90px;
+    background-color: #f9f9f9; /* 更浅的背景色 */
+}
+
+.column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
+/* 帖子卡片 - 深度复刻小红书 */
+.card {
+    background: #ffffff;
+    border-radius: 8px; /* 小红书卡片圆角其实比较小 */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-bottom: 0; /* 靠 gap 控制间距 */
+    break-inside: avoid;
+    transition: transform 0.2s;
+}
+
+.card-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 8px 8px 0 0;
+    background-color: #f0f0f0;
+}
+
+/* 单独的标题栏区域 */
+.card-info {
+    padding: 8px 8px 10px 8px;
+    background: #ffffff;
+    border-radius: 0 0 8px 8px;
+}
+
+.card-title {
+    font-size: 13px;
+    font-weight: 600; /* 标题更粗一点 */
+    color: #333;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-all;
+}
+
+.card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.author {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #f0f0f0;
+    border: 0.5px solid rgba(0,0,0,0.05);
+}
+
+.nickname {
+    font-size: 12px;
+    color: #666;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.likes {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 12px;
+    color: #666;
+}
+
+.interactions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.likes, .collects {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 12px;
+    color: #666;
+    cursor: pointer;
+}
+
+.likes i.active {
+    color: var(--xhs-red);
+}
+
+.collects i.active {
+    color: #ffb800; /* 收藏选中为金色 */
+}
+
+.load-more-btn {
+    text-align: center;
+    padding: 10px;
+    font-size: 13px;
+    color: #5b92e1;
+    cursor: pointer;
+    border-bottom: 1px solid var(--xhs-border);
+    margin-bottom: 10px;
+}
+
+.load-more-btn:active {
+    opacity: 0.7;
+}
+
+/* 底部导航 */
+.bottom-nav {
+    height: auto;
+    min-height: 54px;
+    background: #fff;
+    border-top: 1px solid var(--xhs-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    max-width: 500px;
+    z-index: 100;
+    padding-top: 5px;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--xhs-gray);
+    font-size: 10px;
+    gap: 2px;
+}
+
+.nav-item i {
+    font-size: 20px;
+}
+
+.nav-item.active {
+    color: var(--xhs-black);
+}
+
+.plus-btn .plus-icon {
+    width: 42px;
+    height: 30px;
+    background-color: var(--xhs-red);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 20px;
+    box-shadow: 0 2px 8px rgba(255, 36, 66, 0.3);
+}
+
+/* 弹窗样式 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+}
+
+.modal-content {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 600px; /* 增大宽度 */
+    background: #fff;
+    border-radius: 12px 12px 0 0;
+    padding: 20px; /* 增加内边距 */
+    max-height: 95vh; /* 增加最大高度 */
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+}
+
+/* 居中弹窗样式 */
+.modal-center {
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-center .modal-content {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    border-radius: 12px;
+    width: 95%; /* 增大宽度比例 */
+    max-width: 550px; /* 增大最大宽度 */
+    max-height: 90vh; /* 增大最大高度 */
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.close-btn {
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.publish-btn {
+    background: var(--xhs-red);
+    color: #fff;
+    border: none;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+.post-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.image-upload-placeholder {
+    width: 80px;
+    height: 80px;
+    background: var(--xhs-light-gray);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--xhs-gray);
+    gap: 5px;
+}
+
+.post-title-input, .post-content-input {
+    border: none;
+    outline: none;
+    width: 100%;
+    font-size: 16px;
+}
+
+.post-content-input {
+    height: 250px; /* 增大输入框高度，方便修改 */
+    resize: vertical; /* 允许垂直缩放 */
+    overflow-y: auto;
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+/* 详情页样式重构 - 真正全屏顶格 */
+.detail-content {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    z-index: 1001;
+    background: #fff;
+    transform: none !important;
+    max-width: none !important;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 详情页头部改为悬浮透明 */
+.detail-content .modal-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 10px 15px;
+    margin-bottom: 0;
+    border-bottom: none;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.3), transparent);
+    z-index: 10;
+    color: #fff;
+}
+
+.detail-content .modal-header .close-btn,
+.detail-content .modal-header .title,
+.detail-content .modal-header i {
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.detail-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    height: 100%;
+    padding-bottom: 60px;
+}
+
+.detail-body {
+    padding: 0;
+}
+
+.detail-img {
+    width: 100%;
+    display: block;
+}
+
+.detail-info {
+    padding: 15px;
+}
+
+.detail-title {
+    font-size: 17px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #000;
+}
+
+.detail-text {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #333;
+    white-space: pre-wrap;
+}
+
+/* 评论区重构 */
+.comment-section {
+    border-top: 1px solid #f8f8f8;
+    padding: 15px;
+}
+
+.comment-count {
+    font-size: 13px;
+    color: var(--xhs-gray);
+    margin-bottom: 15px;
+}
+
+.comment-list {
+    margin-bottom: 10px;
+}
+
+.comment-item {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.comment-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.comment-main {
+    flex: 1;
+}
+
+.comment-user-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.comment-user-name {
+    font-size: 13px;
+    color: var(--xhs-gray);
+}
+
+.comment-content {
+    font-size: 14px;
+    color: #333;
+    line-height: 1.5;
+    margin-bottom: 6px;
+}
+
+.comment-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--xhs-gray);
+}
+
+.comment-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: var(--xhs-gray);
+}
+
+.comment-action-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+}
+
+/* 详情页底部吸底栏 */
+.detail-footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 54px;
+    background: #fff;
+    border-top: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    gap: 15px;
+}
+
+.footer-input-box {
+    flex: 1;
+    height: 34px;
+    background: #f5f5f5;
+    border-radius: 17px;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    gap: 8px;
+    color: var(--xhs-gray);
+    font-size: 13px;
+}
+
+.footer-actions {
+    display: flex;
+    gap: 18px;
+}
+
+.footer-action-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 18px;
+    color: #333;
+    position: relative;
+}
+
+.footer-action-item .count {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.footer-action-item i.active {
+    color: var(--xhs-red);
+}
+
+/* 评论输入弹窗样式 */
+.comment-input-content {
+    bottom: 0;
+    border-radius: 12px 12px 0 0;
+    padding: 15px;
+}
+
+.comment-input-header textarea {
+    width: 100%;
+    height: 100px;
+    border: none;
+    outline: none;
+    resize: none;
+    font-size: 15px;
+    background: #f8f8f8;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.comment-input-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.left-tools {
+    display: flex;
+    gap: 20px;
+    color: #666;
+    font-size: 18px;
+    align-items: center;
+}
+
+.ai-gen-btn {
+    background: #f0f0f0;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #333;
+}
+
+.send-btn-active {
+    background: var(--xhs-red);
+    color: #fff;
+    border: none;
+    padding: 6px 18px;
+    border-radius: 18px;
+    font-weight: bold;
+}
+
+/* 聊天更多菜单 */
+.chat-more-content {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    border-radius: 15px 15px 0 0;
+    padding: 10px 0;
+    background: white;
+}
+
+.more-menu-item {
+    padding: 15px;
+    text-align: center;
+    font-size: 16px;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.more-menu-item:active {
+    background: #f9f9f9;
+}
+
+.more-menu-item.close-menu {
+    border-bottom: none;
+    color: var(--xhs-gray);
+}
+
+/* 聊天页面样式 */
+.chat-content {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+    max-width: none !important;
+    display: flex;
+    flex-direction: column;
+    z-index: 1001;
+}
+
+.chat-header {
+    padding-top: calc(10px + env(safe-area-inset-top)); /* 智能适配屏幕顶部刘海/挖孔 */
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f8f8f8;
+    background: #fff;
+}
+
+.chat-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    background: #f5f5f5;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.chat-msg {
+    max-width: 75%;
+    display: flex;
+    gap: 10px;
+}
+
+.chat-msg.mine {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.chat-msg-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+}
+
+.chat-msg-bubble {
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    position: relative;
+    user-select: none; /* 防止长按/双击选中文本干扰 */
+}
+
+.chat-selection-check {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.chat-msg.theirs .chat-msg-bubble {
+    background: #fff;
+    color: #333;
+    border-top-left-radius: 2px;
+}
+
+.chat-msg.mine .chat-msg-bubble {
+    background: #5b92e1;
+    color: #fff;
+    border-top-right-radius: 2px;
+}
+
+.chat-input-area {
+    min-height: 54px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    /* 缩小了上下左右的间距 */
+    padding: 5px 6px calc(8px + env(safe-area-inset-bottom)) 6px;
+    gap: 6px;
+    border-top: 1px solid #f0f0f0;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.chat-input-area i {
+    font-size: 22px;
+    color: #333;
+}
+
+.chat-input-box {
+    flex: 1;
+    height: 36px;
+    background: #f5f5f5;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    gap: 4px;
+}
+
+.chat-action-btns {
+    display: flex;
+    gap: 5px;
+}
+
+.chat-ai-btn {
+    background: #f0f0f0;
+    border: none;
+    padding: 6px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #333;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.chat-send-btn {
+    background: var(--xhs-red);
+    color: #fff;
+    border: none;
+    padding: 6px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.chat-input-box input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 14px;
+}
+
+.chat-input-box i {
+    font-size: 18px;
+    color: #666;
+}
+
+#ai-voice-reply-trigger {
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 5px;
+}
+
+#ai-voice-reply-trigger:active {
+    transform: scale(0.9);
+    color: var(--xhs-red);
+}
+
+/* 刷新指示器 */
+.refresh-indicator {
+    height: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--xhs-gray);
+    transition: height 0.3s;
+}
+
+.refreshing .refresh-indicator {
+    height: 40px;
+}
+
+/* 语音条样式 (QQ风格) */
+.voice-bar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 70%;
+}
+
+.chat-msg.mine .voice-bar-container {
+    align-items: flex-end;
+}
+
+.voice-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 38px;
+    background: #fff;
+    border-radius: 19px;
+    padding: 0 15px;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    min-width: 80px;
+    position: relative;
+    transition: transform 0.1s;
+}
+
+.voice-bar:active {
+    transform: scale(0.95);
+}
+
+.chat-msg.mine .voice-bar {
+    background: #5b92e1;
+    color: #fff;
+    flex-direction: row-reverse;
+}
+
+.voice-icon {
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+/* 语音播放动画 - 更加灵动的波形感 */
+.voice-bar.playing .voice-icon i {
+    animation: voice-wave 0.5s infinite ease-in-out;
+}
+
+@keyframes voice-wave {
+    0% { transform: scaleY(1); opacity: 0.6; }
+    50% { transform: scaleY(1.5); opacity: 1; }
+    100% { transform: scaleY(1); opacity: 0.6; }
+}
+
+.voice-bar.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.voice-bar.loading::after {
+    content: "";
+    position: absolute;
+    right: 10px;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(0,0,0,0.1);
+    border-top-color: var(--xhs-red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.voice-duration {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.voice-text-bubble {
+    display: none;
+    background: #fff;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #333;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    word-break: break-all;
+    margin-top: 5px;
+}
+
+.chat-msg.mine .voice-text-bubble {
+    background: #5b92e1;
+    color: #fff;
+}
+
+.voice-text-bubble.visible {
+    display: block;
+}
+
+/* 开关按钮样式 */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: var(--xhs-red);
+}
+
+input:checked + .slider:before {
+  transform: translateX(18px);
+}
+
+.slider.round {
+  border-radius: 22px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* 市集页面样式 */
+.market-header {
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+}
+
+.market-search-bar {
+    flex: 1;
+    height: 34px;
+    background: #f5f5f5;
+    border-radius: 17px;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    gap: 8px;
+    color: var(--xhs-gray);
+}
+
+.market-search-bar input {
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 100%;
+    font-size: 14px;
+}
+
+.market-cart {
+    font-size: 20px;
+    color: #333;
+}
+
+.market-tabs {
+    display: flex;
+    padding: 10px 15px;
+    gap: 20px;
+    background: #fff;
+    overflow-x: auto;
+    white-space: nowrap;
+    border-bottom: 1px solid #f8f8f8;
+}
+
+.market-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.m-tab {
+    font-size: 14px;
+    color: var(--xhs-gray);
+}
+
+.m-tab.active {
+    color: #333;
+    font-weight: bold;
+    position: relative;
+}
+
+.m-tab.active::after {
+    content: "";
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 15px;
+    height: 2px;
+    background: var(--xhs-red);
+}
+
+.market-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    background: #f9f9f9;
+}
+
+.market-icon-grid {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px 15px;
+    background: #fff;
+    margin-bottom: 10px;
+}
+
+.m-icon-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.m-icon-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.m-icon-item span {
+    font-size: 12px;
+    color: #333;
+}
+
+.market-product-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 8px;
+}
+
+.product-card {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.product-img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+}
+
+.product-info {
+    padding: 8px;
+}
+
+.product-title {
+    font-size: 13px;
+    color: #333;
+    line-height: 1.4;
+    height: 36px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.product-price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+}
+
+.price-symbol {
+    font-size: 12px;
+    color: var(--xhs-red);
+    font-weight: bold;
+}
+
+.price-num {
+    font-size: 16px;
+    color: var(--xhs-red);
+    font-weight: bold;
+}
+
+.product-sales {
+    font-size: 11px;
+    color: var(--xhs-gray);
+    margin-left: auto;
+}
+
+.add-cart-btn {
+    width: 24px;
+    height: 24px;
+    background: var(--xhs-red);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 8px;
+}
+
+/* 购物车样式 */
+.cart-content {
+    height: 100vh;
+    border-radius: 0;
+    padding: 0;
+    background: #f5f5f5;
+}
+
+.cart-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cart-item {
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cart-item-select {
+    font-size: 20px;
+    color: #ccc;
+}
+
+.cart-item-select.active {
+    color: var(--xhs-red);
+}
+
+.cart-item-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.cart-item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 80px;
+}
+
+.cart-item-title {
+    font-size: 14px;
+    color: #333;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.cart-item-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cart-item-price {
+    color: var(--xhs-red);
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.cart-item-counter {
+    display: flex;
+    align-items: center;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+
+.counter-btn {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #333;
+}
+
+.counter-num {
+    width: 30px;
+    text-align: center;
+    font-size: 12px;
+    border-left: 1px solid #eee;
+    border-right: 1px solid #eee;
+}
+
+.cart-footer {
+    height: 60px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 15px;
+    border-top: 1px solid #eee;
+}
+
+.cart-footer-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.cart-footer-left i {
+    font-size: 20px;
+    color: #ccc;
+}
+
+.cart-footer-left i.active {
+    color: var(--xhs-red);
+}
+
+.cart-footer-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.total-price-box {
+    font-size: 14px;
+}
+
+.total-price-num {
+    font-size: 18px;
+    color: var(--xhs-red);
+    font-weight: bold;
+}
+
+.checkout-btn {
+    background: var(--xhs-red);
+    color: #fff;
+    border: none;
+    padding: 8px 25px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+/* 结算方式弹窗 */
+.checkout-method-content {
+    border-radius: 15px 15px 0 0;
+    padding: 10px 0;
+}
+
+.method-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px 25px;
+    border-bottom: 1px solid #f5f5f5;
+    cursor: pointer;
+}
+
+.method-item:hover {
+    background-color: #f9f9f9;
+}
+
+.method-item i {
+    font-size: 24px;
+}
+
+.method-info {
+    flex: 1;
+}
+
+.method-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.method-desc {
+    font-size: 12px;
+    color: var(--xhs-gray);
+}
+
+/* 代付卡片样式 (淘宝风格) */
+.pay-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px;
+    margin: 8px 0;
+    border: 1px solid #ffefe9;
+    box-shadow: 0 4px 12px rgba(255, 80, 0, 0.1);
+    width: 260px;
+    position: relative;
+    overflow: hidden;
+}
+
+.pay-card::before {
+    content: "代付";
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: linear-gradient(45deg, #ff9000, #ff5000);
+    color: #fff;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-bottom-left-radius: 8px;
+    font-weight: bold;
+}
+
+.pay-card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #fff5f0;
+}
+
+.pay-card-header i {
+    color: #ff5000;
+    font-size: 16px;
+}
+
+.pay-card-title {
+    font-weight: bold;
+    font-size: 14px;
+    color: #333;
+}
+
+.pay-card-body {
+    display: flex;
+    gap: 12px;
+}
+
+.pay-card-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid #f5f5f5;
+}
+
+.pay-card-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.pay-card-prod-title {
+    font-size: 13px;
+    color: #333;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.pay-card-price-row {
+    display: flex;
+    flex-direction: column;
+    margin-top: 4px;
+}
+
+.pay-card-total-label {
+    font-size: 11px;
+    color: #999;
+}
+
+.pay-card-price {
+    color: #ff5000;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.pay-card-footer {
+    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid #fff5f0;
+    padding-top: 10px;
+}
+
+.pay-btn {
+    padding: 6px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pay-btn-agree {
+    background: linear-gradient(90deg, #ff9000, #ff5000);
+    color: #fff;
+    border: none;
+    box-shadow: 0 2px 6px rgba(255, 80, 0, 0.2);
+}
+
+.pay-btn-agree:active {
+    transform: scale(0.95);
+    opacity: 0.9;
+}
+
+/* 世界书样式 */
+.world-book-item {
+    padding: 15px;
+    border-bottom: 1px solid var(--xhs-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.wb-item-info {
+    flex: 1;
+}
+
+.wb-item-title {
+    font-weight: bold;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.wb-item-snippet {
+    font-size: 12px;
+    color: var(--xhs-gray);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.wb-item-actions {
+    display: flex;
+    gap: 10px;
+    color: var(--xhs-gray);
+}
+
+.wb-select-item {
+    padding: 15px;
+    border-bottom: 1px solid #f5f5f5;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.wb-select-item:active {
+    background: #f9f9f9;
+}
+
+/* 角色日记样式 */
+.diary-content {
+    max-height: 80vh;
+    overflow: hidden;
+}
+
+.diary-body-text {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    font-size: 15px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    color: #333;
+    background: #fffaf0; /* 纸张质感背景 */
+    border-radius: 8px;
+    margin-top: 10px;
+    font-family: "PingFang SC", "Microsoft YaHei", serif;
+}
+
+/* 转发帖子卡片样式 */
+.forward-post-card {
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    width: 200px;
+    border: 1px solid #eee;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    cursor: pointer;
+}
+
+.forward-post-img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    background: #f0f0f0;
+}
+
+.forward-post-info {
+    padding: 8px;
+}
+
+.forward-post-title {
+    font-size: 13px;
+    font-weight: bold;
+    color: #333;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+    margin-bottom: 4px;
+}
+
+.forward-post-author {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #999;
+}
+
+.forward-post-author img {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+}
+
+/* 信箱样式 */
+.mailbox-content {
+    height: 100vh;
+    border-radius: 0;
+    padding: 0;
+    background: #f5f5f5;
+}
+
+.mailbox-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+.letter-item {
+    background: #fff;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    cursor: pointer;
+}
+
+.letter-item-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.letter-item-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+}
+
+.letter-item-name {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.letter-item-snippet {
+    font-size: 13px;
+    color: #666;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.5;
+}
+
+.letter-item-time {
+    font-size: 11px;
+    color: #999;
+    margin-top: 8px;
+    text-align: right;
+}
+
+.letter-detail-content {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    max-width: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    z-index: 1001;
+}
+
+.letter-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: #fffaf0;
+}
+
+.letter-text {
+    font-size: 16px;
+    line-height: 2;
+    color: #333;
+    white-space: pre-wrap;
+    font-family: "PingFang SC", "Microsoft YaHei", serif;
+    min-height: 100%;
+}
+
+.letter-footer-actions {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    padding-bottom: 40px;
+}
+
+/* 交换日记样式 - 少女恋爱感淡粉色主题 */
+.diary-main-content {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    max-width: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+    background: #fff5f7;
+    display: flex;
+    flex-direction: column;
+    z-index: 1001;
+}
+
+.diary-nav {
+    background: #ffb6c1; /* 浅粉色 */
+    color: #fff;
+    padding: 10px 15px;
+    margin-bottom: 0;
+    box-shadow: 0 2px 10px rgba(255, 182, 193, 0.3);
+}
+
+.diary-nav .close-btn, .diary-nav .title, .diary-nav i {
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.diary-timeline {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    background: #fff5f7;
+    padding-bottom: 100px;
+}
+
+.diary-item {
+    background: #fff;
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(255, 182, 193, 0.15);
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.diary-item:active {
+    transform: scale(0.98);
+}
+
+.diary-item::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    top: 20px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    transform: rotate(45deg);
+    box-shadow: -2px 2px 5px rgba(255, 182, 193, 0.1);
+}
+
+.diary-item.mine {
+    border-left: 5px solid #ff85a2;
+}
+
+.diary-item.theirs {
+    border-left: 5px solid #ffb7b2;
+}
+
+.diary-item-date {
+    font-size: 12px;
+    color: #ff99aa;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    font-weight: 500;
+}
+
+.diary-item-title {
+    font-weight: bold;
+    font-size: 16px;
+    color: #ff4d8d;
+    line-height: 1.4;
+}
+
+.diary-item-content {
+    display: none; /* 时间轴页面不显示内容 */
+}
+
+.wait-reply-btn {
+    position: absolute;
+    right: 20px;
+    bottom: 30px;
+    background: linear-gradient(135deg, #ff85a2, #ffb6c1);
+    color: #fff;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 30px;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(255, 133, 162, 0.4);
+    z-index: 10;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.wait-reply-btn:active {
+    transform: scale(0.95);
+}
+
+.wait-reply-btn:disabled {
+    background: #ccc;
+    box-shadow: none;
+}
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 侧边栏 -->
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-header">更多</div>
+            <div class="sidebar-item" id="api-settings-btn" style="display: none;">
+    <i class="fas fa-cog"></i>
+    <span>API 设置</span>
+</div>
+            <div class="sidebar-item" id="add-friend-trigger">
+                <i class="fas fa-user-plus"></i>
+                <span>添加好友</span>
+            </div>
+            <div class="sidebar-item" id="world-book-btn">
+                <i class="fas fa-book"></i>
+                <span>世界书</span>
+            </div>
+            <div class="sidebar-item" id="mailbox-btn">
+                <i class="fas fa-envelope"></i>
+                <span>信箱</span>
+            </div>
+            <div class="sidebar-item" id="exchange-diary-btn">
+                <i class="fas fa-book-reader"></i>
+                <span>交换日记</span>
+            </div>
+            <div class="sidebar-item" id="export-data-btn">
+                <i class="fas fa-download"></i>
+                <span>导出数据</span>
+            </div>
+            <div class="sidebar-item" id="import-data-btn">
+                <i class="fas fa-upload"></i>
+                <span>导入数据</span>
+            </div>
+            <input type="file" id="import-file-input" style="display: none;" accept=".json">
+        </div>
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+        <!-- 顶部导航 -->
+        <header class="top-nav">
+            <div class="menu-icon" id="menu-trigger">
+                <i class="fas fa-bars"></i>
+            </div>
+            <div id="top-world-book-btn" style="position: absolute; left: 50px; font-size: 18px; cursor: pointer; color: var(--xhs-black);">
+                <i class="fas fa-book"></i>
+            </div>
+            <div class="nav-tabs">
+                <span class="tab">关注</span>
+                <span class="tab active">发现</span>
+                <span class="tab">附近</span>
+            </div>
+            <div class="search-icon" id="search-trigger">
+                <i class="fas fa-search"></i>
+            </div>
+        </header>
+
+        <!-- 下拉刷新提示 -->
+        <div id="pull-to-refresh" class="refresh-indicator">
+            <i class="fas fa-spinner fa-spin"></i> 正在刷新...
+        </div>
+
+        <!-- 核心内容区：瀑布流 -->
+        <main class="content" id="home-container">
+            <div class="column" id="col-left"></div>
+            <div class="column" id="col-right"></div>
+        </main>
+
+        <!-- 消息页面内容 -->
+        <main class="content" id="message-container" style="display: none;">
+            <div class="message-header">消息</div>
+            <div class="message-list" id="friend-list">
+                <!-- 动态显示好友列表 -->
+                <div class="empty-tip">暂无消息，快去添加好友吧</div>
+            </div>
+        </main>
+
+        <!-- 市集页面内容 -->
+        <main class="content" id="market-container" style="display: none; flex-direction: column; padding: 0;">
+            <div class="market-header">
+                <div class="market-search-bar">
+                    <i class="fas fa-search" id="market-search-btn" style="cursor: pointer;"></i>
+                    <input type="text" id="market-search-input" placeholder="搜索商品">
+                </div>
+                <div class="market-add-product" id="market-add-btn" style="font-size: 20px; cursor: pointer;">
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+                <div class="market-cart">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+            </div>
+            <div class="market-tabs">
+                <span class="m-tab active">推荐</span>
+                <span class="m-tab">直播</span>
+                <span class="m-tab">视频</span>
+                <span class="m-tab">穿搭</span>
+                <span class="m-tab">美妆</span>
+                <span class="m-tab">家居</span>
+            </div>
+            <div class="market-scroll-area">
+                <!-- 图标矩阵 -->
+                <div class="market-icon-grid">
+                    <div class="m-icon-item">
+                        <div class="m-icon-circle" style="background: #fff0f0;"><i class="fas fa-tshirt" style="color: #ff4d4f;"></i></div>
+                        <span>女装</span>
+                    </div>
+                    <div class="m-icon-item">
+                        <div class="m-icon-circle" style="background: #f0f5ff;"><i class="fas fa-magic" style="color: #2f54eb;"></i></div>
+                        <span>美妆</span>
+                    </div>
+                    <div class="m-icon-item">
+                        <div class="m-icon-circle" style="background: #fffbe6;"><i class="fas fa-utensils" style="color: #faad14;"></i></div>
+                        <span>美食</span>
+                    </div>
+                    <div class="m-icon-item">
+                        <div class="m-icon-circle" style="background: #f6ffed;"><i class="fas fa-couch" style="color: #52c41a;"></i></div>
+                        <span>家居</span>
+                    </div>
+                    <div class="m-icon-item">
+                        <div class="m-icon-circle" style="background: #fff7e6;"><i class="fas fa-baby" style="color: #ffa940;"></i></div>
+                        <span>母婴</span>
+                    </div>
+                </div>
+                <!-- 商品列表 -->
+                <div class="market-product-grid" id="market-product-grid">
+                    <!-- 动态填充商品 -->
+                </div>
+            </div>
+        </main>
+
+        <!-- “我的”页面内容 -->
+        <main class="content" id="me-container" style="display: none;">
+            <div class="me-header">
+                <div class="me-info">
+                    <div class="avatar-container">
+                        <img src="https://picsum.photos/100/100?random=99" id="me-avatar" class="me-avatar">
+                        <input type="file" id="avatar-input" style="display: none;">
+                    </div>
+                    <div class="me-details">
+                        <h2 id="me-nickname" contenteditable="true">书书用户</h2>
+                        <p>书书号：<span id="me-id" contenteditable="true">12345678</span></p>
+                        <p id="me-bio" contenteditable="true" style="margin-top: 5px; color: #333;">点击添加简介，分享你的生活...</p>
+                    </div>
+                </div>
+                <div class="me-stats">
+                    <div class="stat-item">
+                        <span class="stat-num" contenteditable="true" id="stat-following">12</span>
+                        <span class="stat-label">关注</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-num" contenteditable="true" id="stat-followers">105</span>
+                        <span class="stat-label">粉丝</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-num" contenteditable="true" id="stat-likes">888</span>
+                        <span class="stat-label">获赞与收藏</span>
+                    </div>
+                </div>
+            </div>
+            <div class="me-tabs">
+                <div class="me-tab active" data-me-tab="notes">笔记</div>
+                <div class="me-tab" data-me-tab="likes">赞过</div>
+                <div class="me-tab" data-me-tab="collects">收藏</div>
+            </div>
+            <div id="me-notes-grid" class="notes-grid">
+                <!-- 动态显示笔记 -->
+            </div>
+        </main>
+
+        <!-- 底部导航栏 -->
+        <nav class="bottom-nav">
+            <div class="nav-item active" data-tab="home">
+                <i class="fas fa-home"></i>
+                <span>首页</span>
+            </div>
+            <div class="nav-item" data-tab="market">
+                <i class="fas fa-shopping-bag"></i>
+                <span>市集</span>
+            </div>
+            <div class="nav-item plus-btn" id="post-trigger">
+                <div class="plus-icon">
+                    <i class="fas fa-plus"></i>
+                </div>
+            </div>
+            <div class="nav-item" data-tab="message">
+                <i class="fas fa-comment-dots"></i>
+                <span>消息</span>
+            </div>
+            <div class="nav-item" data-tab="me">
+                <i class="fas fa-user"></i>
+                <span>我</span>
+            </div>
+        </nav>
+
+        <!-- 发帖弹窗 -->
+        <div class="modal" id="post-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-post-modal">&times;</span>
+                    <span class="title">发布笔记</span>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="publish-btn" id="ai-post-btn" style="background: #6200ee;">AI生成</button>
+                        <button class="publish-btn" id="submit-post">发布</button>
+                    </div>
+                </div>
+                <div class="post-form">
+                    <div class="image-upload-placeholder" onclick="document.getElementById('post-image-input').click()">
+                        <i class="fas fa-camera"></i>
+                        <span id="post-image-tip">上传图片/视频</span>
+                        <img id="post-image-preview" style="display:none; width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; border-radius:8px;">
+                    </div>
+                    <input type="file" id="post-image-input" style="display: none;" accept="image/*">
+                    <input type="text" id="post-title" placeholder="填写标题会有更多赞哦" class="post-title-input">
+                    <textarea id="post-content" placeholder="添加正文" class="post-content-input"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 详情/评论弹窗 -->
+        <div class="modal" id="detail-modal" style="display: none;">
+            <div class="modal-content detail-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-detail-modal"><i class="fas fa-chevron-left"></i></span>
+                    <span class="title">笔记详情</span>
+                    <i class="fas fa-share-alt" id="detail-share-btn" style="cursor: pointer;"></i>
+                </div>
+                <div class="detail-scroll-area">
+                    <div class="detail-body" id="detail-body">
+                        <!-- 动态填充内容 -->
+                    </div>
+                    <div class="comment-section">
+                        <div class="comment-count" id="comment-count">共 0 条评论</div>
+                        <div class="comment-list" id="comment-list">
+                            <!-- 评论内容 -->
+                        </div>
+                        <div id="load-more-comments" class="load-more-btn">加载更多评论</div>
+                    </div>
+                </div>
+                <!-- 底部吸底互动栏 -->
+                <div class="detail-footer">
+                    <div class="footer-input-box" id="footer-comment-trigger">
+                        <i class="far fa-edit"></i>
+                        <span>说点什么...</span>
+                    </div>
+                    <div class="footer-actions">
+                        <div class="footer-action-item" id="detail-like-btn">
+                            <i class="far fa-heart"></i>
+                            <span class="count">0</span>
+                        </div>
+                        <div class="footer-action-item" id="detail-collect-btn">
+                            <i class="far fa-star"></i>
+                            <span class="count">0</span>
+                        </div>
+                        <div class="footer-action-item">
+                            <i class="far fa-comment"></i>
+                            <span class="count">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 评论输入弹窗 (小红书风格，点击底部栏弹出) -->
+        <div class="modal" id="comment-input-modal" style="background: rgba(0,0,0,0.2); display: none;">
+            <div class="modal-content comment-input-content">
+                <div class="comment-input-header">
+                    <textarea id="comment-input" placeholder="爱护环境，文明发言" autofocus></textarea>
+                </div>
+                <div class="comment-input-footer">
+                    <div class="left-tools">
+                        <i class="far fa-at"></i>
+                        <i class="far fa-smile"></i>
+                        <button id="ai-comment-btn" class="ai-gen-btn">AI生成</button>
+                    </div>
+                    <button id="send-comment-btn" class="send-btn-active">发送</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 聊天弹窗 -->
+        <div class="modal" id="chat-modal" style="display: none;">
+            <input type="file" id="chat-bg-input" style="display: none;" accept="image/*">
+            <input type="file" id="friend-avatar-input" style="display: none;" accept="image/*">
+            <div class="modal-content chat-content">
+                <div class="modal-header chat-header">
+                    <span class="close-btn" id="close-chat-modal"><i class="fas fa-chevron-left"></i></span>
+                    <img id="chat-friend-avatar" src="" style="width: 30px; height: 30px; border-radius: 50%; margin-left: 10px; cursor: pointer; object-fit: cover;">
+                    <span class="title" id="chat-friend-name" style="flex: 1; margin-left: 10px; text-align: left;">好友名称</span>
+                    <i class="fas fa-ellipsis-h" id="chat-more-btn"></i>
+                </div>
+                <div class="chat-body" id="chat-body">
+                    <!-- 聊天记录 -->
+                </div>
+                <div class="chat-input-area">
+                    <i class="fas fa-camera"></i>
+                    <div class="chat-input-box">
+                        <input type="text" id="chat-input" placeholder="发消息...">
+                        <i class="fas fa-microphone" id="ai-voice-reply-trigger" title="生成语音条" style="cursor: pointer;"></i>
+                    </div>
+                    <div class="chat-action-btns">
+                        <button id="ai-reply-btn" class="chat-ai-btn" title="仅文字回复">回复</button>
+                        <button id="send-chat-btn" class="chat-send-btn">发送</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API 设置弹窗 -->
+        <div class="modal" id="api-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-api-modal">&times;</span>
+                    <span class="title">API 设置</span>
+                </div>
+                <div class="post-form">
+                    <div style="font-size: 14px; font-weight: bold; margin-top: 10px;">LLM 设置</div>
+                    <input type="text" id="api-url" placeholder="API 地址 (例如: https://api.openai.com/v1)" class="post-title-input">
+                    <input type="password" id="api-key" placeholder="API 密钥" class="post-title-input">
+                    <div style="display: flex; gap: 10px;">
+                        <select id="model-select" class="post-title-input" style="flex: 1; border: 1px solid #eee; border-radius: 5px;">
+                            <option value="">请先拉取模型</option>
+                        </select>
+                        <button id="fetch-models-btn" class="publish-btn" style="background: #333;">拉取模型</button>
+                    </div>
+                    
+                    <button id="save-api-btn" class="publish-btn">保存设置</button>
+                    <div style="font-size: 12px; color: #ff2442; margin-top: 10px; line-height: 1.4;">
+                        * 如果提示 "Quota Exceeded"，请检查您的 API 余额或额度是否耗尽。<br>
+                        * 部署到新域名后，需要重新在侧边栏设置 API。
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加好友弹窗 -->
+        <div class="modal" id="friend-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-friend-modal">&times;</span>
+                    <span class="title">添加好友</span>
+                    <button class="publish-btn" id="save-friend-btn">添加</button>
+                </div>
+                <div class="post-form">
+                    <input type="text" id="friend-name" placeholder="好友名称" class="post-title-input">
+                    <textarea id="friend-persona" placeholder="好友人设（例如：一个毒舌但心软的时尚博主）" class="post-content-input" style="height: 200px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 聊天更多操作菜单 -->
+        <div class="modal" id="chat-more-modal" style="background: rgba(0,0,0,0.2); display: none;">
+            <div class="modal-content chat-more-content">
+                <div class="more-menu-item" id="edit-name-btn">修改备注</div>
+                <div class="more-menu-item" id="edit-persona-btn">修改人设</div>
+                <div class="more-menu-item" id="edit-avatar-btn">修改头像</div>
+                <div class="more-menu-item" id="change-chat-bg-btn">修改聊天背景</div>
+                <div class="more-menu-item" id="link-world-book-btn">链接世界书</div>
+                <div class="more-menu-item" id="clear-chat-btn" style="color: var(--xhs-red);">清空聊天记录</div>
+                <div class="more-menu-item" id="delete-friend-btn" style="color: var(--xhs-red);">删除角色</div>
+                <div class="more-menu-item close-menu" id="close-chat-more">取消</div>
+            </div>
+        </div>
+
+        <!-- 编辑好友弹窗 -->
+        <div class="modal" id="edit-friend-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-edit-friend-modal">&times;</span>
+                    <span class="title" id="edit-modal-title">编辑好友</span>
+                    <button class="publish-btn" id="update-friend-btn">保存</button>
+                </div>
+                <div class="post-form" id="edit-friend-form">
+                    <!-- 动态切换输入项 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 世界书管理弹窗 -->
+        <div class="modal modal-center" id="world-book-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-world-book-modal">&times;</span>
+                    <span class="title">世界书管理</span>
+                    <button class="publish-btn" id="add-world-book-item-btn">新增</button>
+                </div>
+                <div class="world-book-list" id="world-book-list" style="flex: 1; overflow-y: auto; padding: 10px 0;">
+                    <!-- 动态填充世界书列表 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 编辑世界书条目弹窗 -->
+        <div class="modal" id="edit-world-book-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-edit-world-book-modal">&times;</span>
+                    <span class="title">编辑世界书</span>
+                    <button class="publish-btn" id="save-world-book-item-btn">保存</button>
+                </div>
+                <div class="post-form">
+                    <input type="text" id="wb-item-title" placeholder="关键词/标题" class="post-title-input">
+                    <textarea id="wb-item-content" placeholder="详细内容" class="post-content-input" style="height: 200px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 链接世界书选择弹窗 -->
+        <div class="modal" id="select-world-book-modal" style="background: rgba(0,0,0,0.2); display: none;">
+            <div class="modal-content" style="max-height: 60vh;">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-select-wb-modal">&times;</span>
+                    <span class="title">选择要链接的世界书</span>
+                </div>
+                <div id="wb-select-list" style="flex: 1; overflow-y: auto;">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 购物车弹窗 -->
+        <div class="modal" id="cart-modal" style="display: none;">
+            <div class="modal-content cart-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-cart-modal"><i class="fas fa-chevron-left"></i></span>
+                    <span class="title">购物车</span>
+                    <span id="cart-edit-btn" style="font-size: 14px; color: var(--xhs-gray);">管理</span>
+                </div>
+                <div class="cart-body" id="cart-items-list">
+                    <!-- 动态填充购物车商品 -->
+                </div>
+                <div class="cart-footer">
+                    <div class="cart-footer-left">
+                        <i class="far fa-circle" id="cart-select-all"></i>
+                        <span>全选</span>
+                    </div>
+                    <div class="cart-footer-right">
+                        <div class="total-price-box">
+                            合计: <span class="price-symbol">￥</span><span class="total-price-num" id="cart-total-price">0</span>
+                        </div>
+                        <button class="checkout-btn" id="checkout-trigger">结算</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 结算方式选择弹窗 -->
+        <div class="modal" id="checkout-method-modal" style="background: rgba(0,0,0,0.2); display: none;">
+            <div class="modal-content checkout-method-content">
+                <div class="method-item" id="pay-self-btn">
+                    <i class="fas fa-wallet" style="color: #108ee9;"></i>
+                    <div class="method-info">
+                        <div class="method-title">自己付</div>
+                        <div class="method-desc">使用账户余额或银行卡支付</div>
+                    </div>
+                </div>
+                <div class="method-item" id="pay-by-friend-btn">
+                    <i class="fas fa-users" style="color: #ff9900;"></i>
+                    <div class="method-info">
+                        <div class="method-title">找人代付</div>
+                        <div class="method-desc">发给好友，让TA帮你买单</div>
+                    </div>
+                </div>
+                <div class="method-item close-menu" id="close-checkout-method">取消</div>
+            </div>
+        </div>
+
+        <!-- 选择代付好友弹窗 -->
+        <div class="modal" id="select-pay-friend-modal" style="background: rgba(0,0,0,0.2); display: none;">
+            <div class="modal-content" style="max-height: 60vh;">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-select-pay-friend-modal">&times;</span>
+                    <span class="title">选择代付好友</span>
+                </div>
+                <div id="pay-friend-list" style="flex: 1; overflow-y: auto;">
+                    <!-- 动态填充好友列表 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 选择转发好友弹窗 -->
+        <div class="modal" id="select-forward-friend-modal" style="background: rgba(0,0,0,0.2); display: none;">
+            <div class="modal-content" style="max-height: 60vh;">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-select-forward-friend-modal">&times;</span>
+                    <span class="title">转发给好友</span>
+                </div>
+                <div id="forward-friend-list" style="flex: 1; overflow-y: auto;">
+                    <!-- 动态填充好友列表 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加商品弹窗 -->
+        <div class="modal" id="add-product-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-add-product-modal">&times;</span>
+                    <span class="title">添加商品</span>
+                    <button class="publish-btn" id="save-product-btn">添加</button>
+                </div>
+                <div class="post-form">
+                    <input type="text" id="new-product-title" placeholder="商品名称" class="post-title-input">
+                    <input type="number" id="new-product-price" placeholder="价格" class="post-title-input">
+                    <textarea id="new-product-info" placeholder="商品信息" class="post-content-input" style="height: 150px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 搜索/生成帖子弹窗 -->
+        <div class="modal" id="search-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-search-modal">&times;</span>
+                    <span class="title">搜索与生成</span>
+                </div>
+                <div class="post-form">
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="search-input" placeholder="想看什么样的帖子？" class="post-title-input" style="flex: 1;">
+                        <button id="random-gen-btn" class="publish-btn" style="background: #333;">随机</button>
+                    </div>
+                    <button id="search-gen-btn" class="publish-btn">生成帖子 (至少4篇)</button>
+                    <div id="search-status" style="font-size: 12px; color: var(--xhs-gray); text-align: center;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 角色日记弹窗 -->
+        <div class="modal" id="diary-modal" style="display: none;">
+            <div class="modal-content diary-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-diary-modal">&times;</span>
+                    <span class="title">角色日记</span>
+                </div>
+                <div id="diary-body" class="diary-body-text">
+                    <!-- 动态填充日记内容 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 信箱弹窗 -->
+        <div class="modal" id="mailbox-modal" style="display: none;">
+            <div class="modal-content mailbox-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-mailbox-modal"><i class="fas fa-chevron-left"></i></span>
+                    <span class="title">信箱</span>
+                    <button class="publish-btn" id="write-letter-btn" style="font-size: 12px; padding: 5px 10px;">写信</button>
+                </div>
+                <div class="mailbox-body" id="mailbox-body">
+                    <!-- 动态填充信件列表 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 信件详情弹窗 -->
+        <div class="modal" id="letter-detail-modal" style="display: none;">
+            <div class="modal-content letter-detail-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-letter-detail-modal">&times;</span>
+                    <span class="title">信件详情</span>
+                </div>
+                <div class="letter-scroll-area">
+                    <div id="letter-content" class="letter-text"></div>
+                    <div class="letter-footer-actions">
+                        <button id="reply-letter-btn" class="publish-btn">回信</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 回信输入弹窗 -->
+        <div class="modal" id="reply-input-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-reply-input-modal">&times;</span>
+                    <span class="title">回信</span>
+                    <button class="publish-btn" id="send-reply-btn">发送</button>
+                </div>
+                <div class="post-form">
+                    <textarea id="reply-text-input" placeholder="输入回信内容..." class="post-content-input" style="height: 300px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 交换日记角色选择弹窗 -->
+        <div class="modal modal-center" id="diary-select-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-diary-select-modal">&times;</span>
+                    <span class="title">选择交换对象</span>
+                </div>
+                <div id="diary-friend-list" class="message-list">
+                    <!-- 动态填充好友列表 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 交换日记主界面 (时间轴) -->
+        <div class="modal" id="diary-main-modal" style="display: none;">
+            <div class="modal-content diary-main-content">
+                <div class="modal-header diary-nav">
+                    <span class="close-btn" id="close-diary-main-modal"><i class="fas fa-chevron-left"></i></span>
+                    <span class="title" id="diary-title">交换日记</span>
+                    <i class="fas fa-edit" id="write-diary-btn" style="cursor: pointer; font-size: 18px;"></i>
+                </div>
+                <div class="diary-timeline" id="diary-timeline">
+                    <!-- 日记时间轴列表 -->
+                </div>
+                <button id="wait-reply-btn" class="wait-reply-btn" style="display: none;">等待回信</button>
+            </div>
+        </div>
+
+        <!-- 写日记弹窗 -->
+        <div class="modal" id="diary-edit-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-diary-edit-modal">&times;</span>
+                    <span class="title">写日记</span>
+                    <button class="publish-btn" id="save-diary-btn">保存</button>
+                </div>
+                <div class="post-form">
+                    <input type="text" id="diary-entry-title" placeholder="标题" class="post-title-input">
+                    <textarea id="diary-entry-content" placeholder="今天发生了什么..." class="post-content-input" style="height: 300px;"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 交换日记详情弹窗 -->
+        <div class="modal" id="diary-entry-detail-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span class="close-btn" id="close-diary-entry-detail-modal">&times;</span>
+                    <span class="title" id="diary-entry-detail-title">日记详情</span>
+                </div>
+                <div class="post-form">
+                    <div id="diary-entry-detail-content" class="diary-body-text" style="height: 400px; overflow-y: auto; background: #fffafb; border: 1px solid #ffe4e1;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+// 生成模拟文字帖子的图片
+function generatePlaceholderImage(title, width = 400, height = 500, bgColor = null) {
+    // 如果传入的是已经生成的 base64，直接返回
+    if (title && title.startsWith('data:image')) return title;
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    
+    const colors = [
+        '#FFF9C4', '#FFECB3', '#FFEB3B', '#FFCDD2', 
+        '#EF9A9A', '#FFE0E0', '#FFF176', '#FF8A80'
+    ];
+    ctx.fillStyle = bgColor || colors[Math.floor(Math.random() * colors.length)];
+    ctx.fillRect(0, 0, width, height);
+    
+    let fontSize = Math.floor(width / 14); 
+    if (title.length > 10) fontSize = Math.floor(width / 16);
+    if (title.length > 20) fontSize = Math.floor(width / 20);
+    if (title.length > 30) fontSize = Math.floor(width / 24);
+    
+    if (height / width < 1.2) {
+        fontSize = Math.floor(fontSize * 0.9);
+    }
+    
+    fontSize = Math.max(14, Math.min(fontSize, 36)); 
+    
+    ctx.fillStyle = '#222222';
+    ctx.font = `bold ${fontSize}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    ctx.shadowColor = 'rgba(0,0,0,0.05)';
+    ctx.shadowBlur = 4;
+
+    const padding = width * 0.12;
+    const maxWidth = width - padding * 2;
+    
+    let lines = [];
+    let currentLine = '';
+    for (let char of title) {
+        let testLine = currentLine + char;
+        if (ctx.measureText(testLine).width > maxWidth) {
+            if (currentLine) lines.push(currentLine);
+            currentLine = char;
+        } else {
+            currentLine = testLine;
+        }
+    }
+    if (currentLine) lines.push(currentLine);
+
+    const lineHeight = fontSize * 1.4;
+    const maxLines = Math.floor((height * 0.8) / lineHeight);
+    
+    if (lines.length > maxLines) {
+        lines = lines.slice(0, maxLines);
+        let lastLine = lines[maxLines-1];
+        if (lastLine.length > 2) {
+            lines[maxLines-1] = lastLine.substring(0, lastLine.length - 1) + '...';
+        }
+    }
+
+    let startY = (height - (lines.length - 1) * lineHeight) / 2;
+    startY -= 10;
+    
+    lines.forEach((line, index) => {
+        ctx.fillText(line, width / 2, startY + index * lineHeight);
+    });
+
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    ctx.fillRect(width * 0.4, height - (height * 0.1), width * 0.2, Math.max(2, height * 0.01));
+    
+    return canvas.toDataURL('image/png');
+}
+
+// 过滤括号及其内容
+function filterAIContent(text) {
+    if (typeof text !== 'string') return text;
+    return text.replace(/\([^)]*\)/g, '').replace(/（[^）]*）/g, '').trim();
+}
+
+// 解析 AI 返回的 JSON
+function parseAIJSON(content) {
+    if (!content) return null;
+    
+    // 预处理：移除可能的控制字符和不可见字符（Gemini 有时会带这些）
+    let str = String(content).replace(/[\u0000-\u001F\u007F-\u009F]/g, "").trim();
+    
+    const tryParse = (s) => {
+        try { return JSON.parse(s); } catch (e) { return null; }
+    };
+
+    // 1. 尝试直接解析
+    let result = tryParse(str);
+    if (result) return result;
+
+    // 2. 移除 Markdown 标记 (支持 ```json 或 纯 ```)
+    let cleaned = str.replace(/```(?:json)?\s*([\s\S]*?)\s*```/g, '$1').trim();
+    result = tryParse(cleaned);
+    if (result) return result;
+
+    // 3. 提取最外层 { ... } 或 [ ... ]
+    const firstBrace = str.indexOf('{');
+    const firstBracket = str.indexOf('[');
+    let startIdx = -1;
+    if (firstBrace !== -1 && firstBracket !== -1) startIdx = Math.min(firstBrace, firstBracket);
+    else startIdx = firstBrace !== -1 ? firstBrace : firstBracket;
+
+    const lastBrace = str.lastIndexOf('}');
+    const lastBracket = str.lastIndexOf(']');
+    let endIdx = Math.max(lastBrace, lastBracket);
+
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+        let candidate = str.substring(startIdx, endIdx + 1);
+        result = tryParse(candidate);
+        if (result) return result;
+
+        // 4. 深度容错处理
+        // a. 处理 JSON 字符串内未转义的换行符
+        candidate = candidate.replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+        // b. 移除对象或数组末尾多余的逗号
+        candidate = candidate.replace(/,\s*([}\]])/g, '$1');
+        
+        result = tryParse(candidate);
+        if (result) return result;
+    }
+    
+    // 5. 正则保底提取 (针对常见的 title/content 结构)
+    try {
+        const titleMatch = str.match(/"title"\s*:\s*"([^"]*)"/);
+        const contentMatch = str.match(/"content"\s*:\s*"([\s\S]*?)"(?:\s*[}\n]|$)/);
+        if (titleMatch && contentMatch) {
+            return {
+                title: titleMatch[1],
+                content: contentMatch[1].replace(/\\n/g, '\n')
+            };
+        }
+        // 针对 bubbles 结构
+        const bubblesMatch = str.match(/"bubbles"\s*:\s*(\[[^\]]*\])/);
+        if (bubblesMatch) {
+            const b = tryParse(bubblesMatch[1]);
+            if (b) return { bubbles: b };
+        }
+    } catch (e) {}
+
+    console.error("JSON Parse Failed. Content:", content);
+    return null;
+}
+
+// 统一 AI 调用函数
+async function callAI(messages, jsonMode = true) {
+    apiConfig = JSON.parse(localStorage.getItem('ai_config')) || { url: '', key: '', model: '' };
+    if (!apiConfig.key) throw new Error("请先在手机主屏幕的‘设置’中配置 API 密钥");
+    if (!apiConfig.url) throw new Error("请先设置 API 地址");
+    if (!apiConfig.model) throw new Error("请先在侧边栏 API 设置中拉取并选择一个模型");
+    
+    let url = apiConfig.url.trim();
+    if (url.endsWith('/')) url = url.slice(0, -1);
+    
+    const body = {
+        model: apiConfig.model,
+        messages: messages,
+        stream: false
+    };
+
+    // 适配 Gemini 模型：Gemini 在某些中转站下对 response_format 支持不佳
+    // 我们通过 Prompt 引导和强大的 parseAIJSON 来确保兼容性
+    
+    const response = await fetch(`${url}/chat/completions`, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': `Bearer ${apiConfig.key}` 
+        },
+        body: JSON.stringify(body)
+    });
+
+    let data;
+    try {
+        data = await response.json();
+    } catch (e) {
+        throw new Error("服务器返回了非 JSON 格式的内容，请检查 API 地址是否正确");
+    }
+
+    if (!response.ok) {
+        const errorMsg = data.error?.message || data.message || `请求失败 (状态码: ${response.status})`;
+        throw new Error(errorMsg);
+    }
+
+    if (!data || !data.choices || !Array.isArray(data.choices) || data.choices.length === 0 || !data.choices[0].message) {
+        throw new Error("AI 返回的数据格式不正确，请检查 API 地址或模型设置");
+    }
+
+    return data.choices[0].message.content || "";
+}
+
+// 模拟数据
+const mockPosts = [
+    {
+        id: 1,
+        title: "今日份穿搭分享，这套真的绝绝子！✨",
+        content: "今天天气超好，穿了这套新买的衣服出门，心情都变好了。大家觉得怎么样？#穿搭 #OOTD",
+        author: "穿搭小能手",
+        avatar: "https://picsum.photos/60/60?random=1",
+        likes: 1205,
+        isLiked: false,
+        collects: 456,
+        isCollected: false,
+        comments: [
+            { user: "路人甲", text: "这套衣服链接有吗？", time: "2小时前", location: "北京", avatar: "https://picsum.photos/32/32?random=10" },
+            { user: "时尚达人", text: "配色很大胆，喜欢！", time: "1小时前", location: "上海", avatar: "https://picsum.photos/32/32?random=11" }
+        ]
+    }
+];
+
+mockPosts.forEach(p => {
+    if (!p.image) p.image = generatePlaceholderImage(p.title, 400, 500);
+});
+
+let posts = JSON.parse(localStorage.getItem('xhs_posts')) || [...mockPosts];
+let friends = JSON.parse(localStorage.getItem('xhs_friends')) || [
+    { id: 101, name: "薯条小助手", avatar: "https://picsum.photos/100/100?random=101", lastMsg: "欢迎来到小红书！", persona: "热情的小红书官方助手" }
+];
+let currentDetailPost = null;
+let currentChatFriend = null;
+let isChatSelectionMode = false;
+let selectedMessageIndices = new Set();
+let chatHistories = JSON.parse(localStorage.getItem('xhs_chat_histories')) || {};
+let apiConfig = JSON.parse(localStorage.getItem('ai_config')) || { 
+    url: '', key: '', model: ''
+};
+
+// 世界书从主页面的 wb_data 同步读取，合并到小红书自己的世界书
+function loadMergedWorldBooks() {
+    let xhsBooks = JSON.parse(localStorage.getItem('xhs_world_books')) || [];
+    try {
+        let mainWbData = JSON.parse(localStorage.getItem('wb_data') || '{"groups":[],"books":[]}');
+        if (mainWbData.books && mainWbData.books.length > 0) {
+            mainWbData.books.forEach(mb => {
+                const exists = xhsBooks.find(b => b.title === mb.title);
+                if (!exists) {
+                    xhsBooks.push({
+                        title: mb.title,
+                        content: mb.content
+                    });
+                }
+            });
+        }
+    } catch (e) {
+        console.error('同步主页面世界书失败', e);
+    }
+    return xhsBooks;
+}
+let worldBooks = loadMergedWorldBooks();
+let cart = JSON.parse(localStorage.getItem('xhs_cart')) || [];
+
+function getMeAvatar() {
+    return localStorage.getItem('xhs_me_avatar') || "https://picsum.photos/60/60?random=99";
+}
+
+function getMeNickname() {
+    return document.getElementById('me-nickname')?.innerText || "书书用户";
+}
+
+function renderPosts(targetPosts = posts) {
+    const colLeft = document.getElementById('col-left');
+    const colRight = document.getElementById('col-right');
+    if (!colLeft || !colRight) return;
+    colLeft.innerHTML = '';
+    colRight.innerHTML = '';
+    targetPosts.forEach((post, index) => {
+        const card = createCard(post);
+        if (index % 2 === 0) colLeft.appendChild(card);
+        else colRight.appendChild(card);
+    });
+}
+
+function createCard(post) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const displayImage = post.image || generatePlaceholderImage(post.title, 400, 500, post.bgColor);
+    card.innerHTML = `
+        <img src="${displayImage}" class="card-img" loading="lazy">
+        <div class="card-info">
+            <div class="card-title">${post.title}</div>
+            <div class="card-footer">
+                <div class="author">
+                    <img src="${post.avatar}" class="avatar">
+                    <span class="nickname">${post.author}</span>
+                </div>
+                <div class="interactions">
+                    <div class="likes" onclick="toggleLike(event, ${post.id})">
+                        <i class="${post.isLiked ? 'fas' : 'far'} fa-heart ${post.isLiked ? 'active' : ''}"></i>
+                        <span>${post.likes || 0}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    card.onclick = () => openDetail(post);
+    return card;
+}
+
+window.toggleLike = (event, postId) => {
+    if (event) event.stopPropagation();
+    const post = posts.find(p => p.id === postId);
+    if (post) {
+        post.isLiked = !post.isLiked;
+        post.likes += post.isLiked ? 1 : -1;
+        localStorage.setItem('xhs_posts', JSON.stringify(posts));
+        renderPosts();
+        if (currentDetailPost && currentDetailPost.id === postId) updateDetailInteractions();
+    }
+}
+
+window.toggleCollect = (event, postId) => {
+    if (event) event.stopPropagation();
+    const post = posts.find(p => p.id === postId);
+    if (post) {
+        post.isCollected = !post.isCollected;
+        post.collects += post.isCollected ? 1 : -1;
+        localStorage.setItem('xhs_posts', JSON.stringify(posts));
+        if (currentDetailPost && currentDetailPost.id === postId) updateDetailInteractions();
+    }
+}
+
+function updateDetailInteractions() {
+    if (!currentDetailPost) return;
+    const likeBtn = document.getElementById('detail-like-btn');
+    const collectBtn = document.getElementById('detail-collect-btn');
+    if (likeBtn) {
+        likeBtn.querySelector('i').className = currentDetailPost.isLiked ? 'fas fa-heart active' : 'far fa-heart';
+        likeBtn.querySelector('.count').innerText = currentDetailPost.likes || 0;
+    }
+    if (collectBtn) {
+        collectBtn.querySelector('i').className = currentDetailPost.isCollected ? 'fas fa-star active' : 'far fa-star';
+        collectBtn.querySelector('.count').innerText = currentDetailPost.collects || 0;
+    }
+}
+
+function openDetail(post) {
+    currentDetailPost = post;
+    const modal = document.getElementById('detail-modal');
+    const body = document.getElementById('detail-body');
+    const displayImage = post.image || generatePlaceholderImage(post.title, 400, 500, post.bgColor);
+    body.innerHTML = `
+        <img src="${displayImage}" class="detail-img">
+        <div class="detail-info">
+            <div class="author" style="margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <img src="${post.avatar}" class="avatar" style="width: 34px; height: 34px;">
+                    <span class="nickname" style="font-size: 15px; font-weight: bold;">${post.author}</span>
+                </div>
+            </div>
+            <div class="detail-title">${post.title}</div>
+            <div class="detail-text">${post.content}</div>
+        </div>
+    `;
+    renderComments();
+    updateDetailInteractions();
+    modal.style.display = 'flex';
+}
+
+function renderComments() {
+    const list = document.getElementById('comment-list');
+    const count = document.getElementById('comment-count');
+    if (!list || !currentDetailPost) return;
+    
+    const comments = currentDetailPost.comments || [];
+    count.innerText = `共 ${comments.length} 条评论`;
+    list.innerHTML = comments.map(c => `
+        <div class="comment-item">
+            <img src="${c.avatar || 'https://picsum.photos/32/32?random=' + Math.random()}" class="comment-avatar">
+            <div class="comment-main">
+                <div class="comment-user-info">
+                    <span class="comment-user-name">${c.user}</span>
+                </div>
+                <div class="comment-content">${c.text}</div>
+                <div class="comment-meta">
+                    <span>${c.time || '刚刚'}</span>
+                    <span>${c.location || '未知'}</span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 加载更多评论 (路人评论)
+document.getElementById('load-more-comments').onclick = async () => {
+    if (!currentDetailPost) return;
+    const btn = document.getElementById('load-more-comments');
+    btn.innerText = "正在加载...";
+    
+    try {
+        const content = await callAI([
+            { role: "system", content: '你现在是小红书的路人评论区。请根据帖子内容生成3条真实、多样化的路人评论。注意：严格只返回 JSON，不要有任何前导或后置文字，不要使用 Markdown 代码块。JSON 结构: {"comments": [{"user": "昵称", "text": "评论内容", "location": "省份"}]}' },
+            { role: "user", content: `帖子标题: ${currentDetailPost.title}
+正文: ${currentDetailPost.content}` }
+        ]);
+        const result = parseAIJSON(content);
+        if (!result) throw new Error("解析失败");
+        const newComments = result.comments || [];
+        
+        newComments.forEach(c => {
+            c.text = filterAIContent(c.text);
+            c.time = "刚刚";
+            c.avatar = `https://picsum.photos/32/32?random=${Math.random()}`;
+            currentDetailPost.comments.push(c);
+        });
+        
+        localStorage.setItem('xhs_posts', JSON.stringify(posts));
+        renderComments();
+    } catch (e) {
+        let msg = e.message;
+        if (msg.toLowerCase().includes("quota")) msg += " (请检查 API 余额)";
+        alert("加载失败: " + msg);
+    } finally {
+        btn.innerText = "加载更多评论";
+    }
+};
+
+// 聊天逻辑
+function renderFriends() {
+    const list = document.getElementById('friend-list');
+    if (!list) return;
+    list.innerHTML = friends.map(f => `
+        <div class="friend-item" onclick="openChat(${f.id})">
+            <img src="${f.avatar}" class="friend-avatar">
+            <div class="friend-info">
+                <div class="friend-name">${f.name}</div>
+            </div>
+            <div class="friend-actions">
+                <button class="friend-post-btn" onclick="handleListGenPost(event, ${f.id})">发帖</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+window.handleListGenPost = (event, friendId) => {
+    event.stopPropagation();
+    const friend = friends.find(f => f.id === friendId);
+    if (friend) {
+        currentChatFriend = friend;
+        generateCharacterPost(event.target);
+    }
+};
+
+async function generateCharacterPost(btn) {
+    const originalText = btn.innerText;
+    btn.innerText = "生成中...";
+    btn.disabled = true;
+
+    try {
+        const content = await callAI([
+            { role: "system", content: `扮演：${currentChatFriend.persona}。
+任务：以该角色的口吻发一篇小红书帖子。
+注意：
+1. 严格只返回 JSON，不要有任何前导或后置文字。
+2. 不要使用 Markdown 代码块标记。
+3. 确保 JSON 格式正确，特殊字符需转义。
+JSON 结构：{"title": "帖子标题", "content": "帖子正文"}` },
+            { role: "user", content: "请开始发帖" }
+        ]);
+        const result = parseAIJSON(content);
+        if (!result) throw new Error("解析失败");
+        
+        const newPost = {
+            id: Date.now(),
+            title: filterAIContent(result.title),
+            content: filterAIContent(result.content),
+            author: currentChatFriend.name,
+            avatar: currentChatFriend.avatar,
+            likes: 0,
+            isLiked: false,
+            collects: 0,
+            isCollected: false,
+            comments: [],
+            bgColor: [
+                '#FFF9C4', '#FFECB3', '#FFEB3B', '#FFCDD2', 
+                '#EF9A9A', '#FFE0E0', '#FFF176', '#FF8A80'
+            ][Math.floor(Math.random() * 8)]
+        };
+        posts.unshift(newPost);
+        localStorage.setItem('xhs_posts', JSON.stringify(posts));
+        renderPosts();
+        alert("发帖成功！");
+    } catch (e) {
+        let msg = e.message;
+        if (msg.toLowerCase().includes("quota")) msg += " (请检查 API 余额)";
+        alert("生成失败: " + msg);
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+}
+
+function openChat(friendId) {
+    const friend = friends.find(f => f.id === friendId);
+    if (!friend) return;
+    currentChatFriend = friend;
+    isChatSelectionMode = false;
+    selectedMessageIndices.clear();
+    document.getElementById('chat-friend-name').innerText = friend.name;
+    const avatarImg = document.getElementById('chat-friend-avatar');
+    if (avatarImg) avatarImg.src = friend.avatar;
+    
+    const chatBody = document.getElementById('chat-body');
+    chatBody.style.backgroundImage = friend.chatBg ? `url(${friend.chatBg})` : 'none';
+    document.getElementById('chat-modal').style.display = 'flex';
+    renderChatMessages();
+}
+
+function renderChatMessages() {
+    const body = document.getElementById('chat-body');
+    const history = chatHistories[currentChatFriend.id] || [];
+    const myAvatar = getMeAvatar();
+    
+    // 更新头部显示删除按钮
+    const moreBtn = document.getElementById('chat-more-btn');
+    let deleteBtn = document.getElementById('chat-delete-selected-btn');
+    if (isChatSelectionMode) {
+        if (!deleteBtn) {
+            deleteBtn = document.createElement('i');
+            deleteBtn.id = 'chat-delete-selected-btn';
+            deleteBtn.className = 'fas fa-trash-alt';
+            deleteBtn.style.cssText = 'margin-right: 15px; color: #ff2442; cursor: pointer; font-size: 18px;';
+            deleteBtn.onclick = deleteSelectedMessages;
+            moreBtn.parentNode.insertBefore(deleteBtn, moreBtn);
+        }
+        deleteBtn.style.display = 'block';
+        moreBtn.style.display = 'none';
+    } else {
+        if (deleteBtn) deleteBtn.style.display = 'none';
+        moreBtn.style.display = 'block';
+    }
+
+    body.innerHTML = history.map((msg, index) => {
+        const isMine = msg.type === 'mine';
+        const avatar = isMine ? myAvatar : currentChatFriend.avatar;
+        const avatarClass = isMine ? 'chat-msg-avatar avatar-mine' : 'chat-msg-avatar';
+        const dblClickAction = !isMine ? 'ondblclick="generateDiary()"' : '';
+        
+        const isSelected = selectedMessageIndices.has(index);
+        const selectionHtml = isChatSelectionMode ? 
+            `<div class="chat-selection-check" onclick="toggleMessageSelection(${index})" style="margin: 0 10px; color: ${isSelected ? '#ff2442' : '#ccc'}; cursor: pointer; font-size: 20px; display: flex; align-items: center;">
+                <i class="fas ${isSelected ? 'fa-check-circle' : 'fa-circle'}"></i>
+            </div>` : '';
+
+        if (msg.isVoiceBar) {
+            const width = Math.min(200, 80 + (msg.duration || 2) * 10);
+            return `
+                <div class="chat-msg ${msg.type}" style="display: flex; align-items: center;">
+                    ${selectionHtml}
+                    <img src="${avatar}" class="${avatarClass}" ${dblClickAction}>
+                    <div class="voice-bar-container">
+                        <div class="voice-bar" style="width: ${width}px" onclick="${isChatSelectionMode ? `toggleMessageSelection(${index})` : `toggleVoiceText(${index})`}" ondblclick="enterChatSelectionMode(event, ${index})">
+                            <div class="voice-icon"><i class="fas fa-comment-alt"></i></div>
+                            <span class="voice-duration">${msg.duration || 2}"</span>
+                        </div>
+                        <div class="voice-text-bubble" id="voice-text-${index}">${msg.text}</div>
+                    </div>
+                </div>`;
+        }
+        if (msg.isPostCard) {
+            return `
+                <div class="chat-msg ${msg.type}" style="display: flex; align-items: center;">
+                    ${selectionHtml}
+                    <img src="${avatar}" class="${avatarClass}" ${dblClickAction}>
+                    <div class="forward-post-card" onclick="openPostFromChat(${msg.postId})">
+                        <img src="${msg.image}" class="forward-post-img">
+                        <div class="forward-post-info">
+                            <div class="forward-post-title">${msg.title}</div>
+                            <div class="forward-post-author">
+                                <img src="${msg.authorAvatar}">
+                                <span>${msg.author}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+        }
+        if (msg.isPayCard) {
+            const firstItem = msg.items[0];
+            const displayImage = firstItem.image || generatePlaceholderImage(firstItem.title, 300, 300, firstItem.bgColor);
+            return `
+                <div class="chat-msg ${msg.type}" style="display: flex; align-items: center;">
+                    ${selectionHtml}
+                    <img src="${avatar}" class="${avatarClass}" ${dblClickAction}>
+                    <div class="pay-card">
+                        <div class="pay-card-header">
+                            <i class="fas fa-shopping-bag"></i>
+                            <span class="pay-card-title">帮我付下款呗~</span>
+                        </div>
+                        <div class="pay-card-body">
+                            <img src="${displayImage}" class="pay-card-img">
+                            <div class="pay-card-info">
+                                <div class="pay-card-prod-title">${msg.items.length > 1 ? `${firstItem.title} 等${msg.items.length}件商品` : firstItem.title}</div>
+                                <div class="pay-card-price-row">
+                                    <span class="pay-card-total-label">合计</span>
+                                    <span class="pay-card-price">￥${msg.totalPrice.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pay-card-footer">
+                            <button class="pay-btn pay-btn-agree" onclick="handlePayAgree(${index})">去支付</button>
+                        </div>
+                    </div>
+                </div>`;
+        }
+        return `
+            <div class="chat-msg ${msg.type}" style="display: flex; align-items: center;">
+                ${selectionHtml}
+                <img src="${avatar}" class="${avatarClass}" ${dblClickAction}>
+                <div class="chat-msg-bubble" onclick="${isChatSelectionMode ? `toggleMessageSelection(${index})` : ''}" ondblclick="enterChatSelectionMode(event, ${index})">${msg.text}</div>
+            </div>`;
+    }).join('');
+    body.scrollTop = body.scrollHeight;
+}
+
+window.enterChatSelectionMode = (event, index) => {
+    event.stopPropagation();
+    isChatSelectionMode = true;
+    selectedMessageIndices.clear();
+    selectedMessageIndices.add(index);
+    renderChatMessages();
+};
+
+window.toggleMessageSelection = (index) => {
+    if (selectedMessageIndices.has(index)) {
+        selectedMessageIndices.delete(index);
+    } else {
+        selectedMessageIndices.add(index);
+    }
+    if (selectedMessageIndices.size === 0) {
+        isChatSelectionMode = false;
+    }
+    renderChatMessages();
+};
+
+window.deleteSelectedMessages = () => {
+    if (selectedMessageIndices.size === 0) return;
+    if (confirm(`确定删除选中的 ${selectedMessageIndices.size} 条消息吗？`)) {
+        const history = chatHistories[currentChatFriend.id];
+        const newHistory = history.filter((_, index) => !selectedMessageIndices.has(index));
+        chatHistories[currentChatFriend.id] = newHistory;
+        localStorage.setItem('xhs_chat_histories', JSON.stringify(chatHistories));
+        isChatSelectionMode = false;
+        selectedMessageIndices.clear();
+        renderChatMessages();
+    }
+};
+
+window.toggleVoiceText = (index) => {
+    const el = document.getElementById(`voice-text-${index}`);
+    if (el) el.classList.toggle('visible');
+};
+
+async function aiReplyMessage(isVoiceMode = false) {
+    if (!currentChatFriend) return;
+    
+    const btn = document.getElementById('ai-reply-btn');
+    const voiceTrigger = document.getElementById('ai-voice-reply-trigger');
+    
+    btn.disabled = true;
+    voiceTrigger.style.opacity = "0.5";
+    voiceTrigger.style.pointerEvents = "none";
+    const originalBtnText = btn.innerText;
+    btn.innerText = "思考中...";
+    
+    try {
+        const history = chatHistories[currentChatFriend.id] || [];
+        const messages = history.slice(-10).map(m => {
+            let content = m.text;
+            if (m.isPostCard) {
+                const post = posts.find(p => p.id === m.postId);
+                if (post) {
+                    content = `[用户向你转发了一个帖子]
+标题：${post.title}
+内容：${post.content}`;
+                }
+            }
+            if (m.isPayCard) {
+                // 直接使用 m.text，它已经包含了详细的商品信息
+                content = `${m.text}
+请对此作出回应（可以答应也可以拒绝，或者吐槽一下买的东西）。`;
+            }
+            return { role: m.type === 'mine' ? 'user' : 'assistant', content: content };
+        });
+
+        const content = await callAI([
+            { role: "system", content: `扮演：${currentChatFriend.persona}。
+你正在和小红书用户聊天。请模仿真实的社交软件聊天风格（多用语气词、表情符号，回复简短但有连续性，像真人一样分段发送）。
+要求：
+1. 必须回复至少三个对话气泡。
+2. 如果用户转发了帖子，请针对帖子内容发表你的看法或进行互动。
+3. 严禁回复空内容或“...”。
+4. 将你的回复拆分为3-5个独立的气泡，确保每个气泡都有实质性内容。
+5. 注意：严格只返回 JSON，不要有任何前导或后置文字，不要使用 Markdown 代码块。
+JSON 结构: {"bubbles": ["气泡1", "气泡2", "气泡3"]}` }, 
+            ...messages
+        ]);
+        let result = parseAIJSON(content);
+        if (!result) throw new Error("解析失败");
+        let bubbles = result.bubbles || [];
+        
+        if (bubbles.length === 0) throw new Error("AI 未返回有效回复");
+
+        if (!chatHistories[currentChatFriend.id]) chatHistories[currentChatFriend.id] = [];
+        for (let text of bubbles) {
+            const filteredText = filterAIContent(text);
+            if (!filteredText) continue;
+
+            const msgObj = { type: 'theirs', text: filteredText };
+            if (isVoiceMode) {
+                msgObj.isVoiceBar = true;
+                msgObj.duration = Math.max(2, Math.floor(filteredText.length / 3));
+            }
+            chatHistories[currentChatFriend.id].push(msgObj);
+        }
+        renderChatMessages();
+        localStorage.setItem('xhs_chat_histories', JSON.stringify(chatHistories));
+    } catch (e) { 
+        let msg = e.message;
+        if (msg.toLowerCase().includes("quota")) msg += " (请检查 API 余额)";
+        alert("回复失败: " + msg); 
+    } finally { 
+        btn.disabled = false;
+        voiceTrigger.style.opacity = "1";
+        voiceTrigger.style.pointerEvents = "auto";
+        btn.innerText = originalBtnText; 
+    }
+}
+
+// 基础事件绑定
+document.getElementById('send-chat-btn').onclick = () => {
+    const input = document.getElementById('chat-input');
+    if (!input.value.trim()) return;
+    if (!chatHistories[currentChatFriend.id]) chatHistories[currentChatFriend.id] = [];
+    chatHistories[currentChatFriend.id].push({ type: 'mine', text: input.value });
+    input.value = '';
+    renderChatMessages();
+    localStorage.setItem('xhs_chat_histories', JSON.stringify(chatHistories));
+};
+document.getElementById('ai-reply-btn').onclick = () => aiReplyMessage(false);
+document.getElementById('ai-voice-reply-trigger').onclick = () => aiReplyMessage(true);
+document.getElementById('close-chat-modal').onclick = () => {
+    isChatSelectionMode = false;
+    selectedMessageIndices.clear();
+    document.getElementById('chat-modal').style.display = 'none';
+};
+document.getElementById('menu-trigger').onclick = () => { document.getElementById('sidebar').classList.add('active'); document.getElementById('sidebar-overlay').style.display = 'block'; };
+document.getElementById('sidebar-overlay').onclick = () => { document.getElementById('sidebar').classList.remove('active'); document.getElementById('sidebar-overlay').style.display = 'none'; };
+
+// 聊天更多操作
+document.getElementById('chat-more-btn').onclick = () => document.getElementById('chat-more-modal').style.display = 'flex';
+document.getElementById('close-chat-more').onclick = () => document.getElementById('chat-more-modal').style.display = 'none';
+
+document.getElementById('edit-name-btn').onclick = () => {
+    const newName = prompt("修改备注", currentChatFriend.name);
+    if (newName) {
+        currentChatFriend.name = newName;
+        document.getElementById('chat-friend-name').innerText = newName;
+        localStorage.setItem('xhs_friends', JSON.stringify(friends));
+        renderFriends();
+    }
+    document.getElementById('chat-more-modal').style.display = 'none';
+};
+
+document.getElementById('edit-persona-btn').onclick = () => {
+    const modal = document.getElementById('edit-friend-modal');
+    const title = document.getElementById('edit-modal-title');
+    const form = document.getElementById('edit-friend-form');
+    
+    title.innerText = "修改人设";
+    form.style.flex = "1";
+    form.style.overflowY = "auto";
+    form.innerHTML = `
+        <textarea id="edit-persona-input" class="post-content-input" style="height: 70vh; width: 100%; box-sizing: border-box; padding: 15px; border: 1px solid #eee; border-radius: 8px; font-family: inherit; resize: vertical; font-size: 15px; line-height: 1.6;">${currentChatFriend.persona}</textarea>
+    `;
+    
+    document.getElementById('update-friend-btn').onclick = () => {
+        const newVal = document.getElementById('edit-persona-input').value;
+        currentChatFriend.persona = newVal;
+        localStorage.setItem('xhs_friends', JSON.stringify(friends));
+        modal.style.display = 'none';
+    };
+    
+    modal.style.display = 'flex';
+    document.getElementById('chat-more-modal').style.display = 'none';
+};
+
+document.getElementById('edit-avatar-btn').onclick = () => {
+    document.getElementById('friend-avatar-input').click();
+};
+
+document.getElementById('friend-avatar-input').onchange = (e) => {
+    const file = e.target.files[0];
+    if (file && currentChatFriend) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            currentChatFriend.avatar = event.target.result;
+            localStorage.setItem('xhs_friends', JSON.stringify(friends));
+            renderFriends();
+            renderChatMessages();
+            document.getElementById('chat-more-modal').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+document.getElementById('change-chat-bg-btn').onclick = () => document.getElementById('chat-bg-input').click();
+document.getElementById('chat-bg-input').onchange = (e) => {
+    const file = e.target.files[0];
+    if (file && currentChatFriend) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            currentChatFriend.chatBg = event.target.result;
+            document.getElementById('chat-body').style.backgroundImage = `url(${event.target.result})`;
+            localStorage.setItem('xhs_friends', JSON.stringify(friends));
+            document.getElementById('chat-more-modal').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+document.getElementById('clear-chat-btn').onclick = () => {
+    if (confirm('确定清空聊天记录？')) {
+        chatHistories[currentChatFriend.id] = [];
+        localStorage.setItem('xhs_chat_histories', JSON.stringify(chatHistories));
+        renderChatMessages();
+        document.getElementById('chat-more-modal').style.display = 'none';
+    }
+};
+
+document.getElementById('delete-friend-btn').onclick = () => {
+    if (confirm(`确定删除角色 "${currentChatFriend.name}" 及其所有数据吗？此操作不可撤销。`)) {
+        const friendId = currentChatFriend.id;
+        
+        // 1. 从好友列表中删除
+        friends = friends.filter(f => f.id !== friendId);
+        localStorage.setItem('xhs_friends', JSON.stringify(friends));
+        
+        // 2. 删除聊天记录
+        delete chatHistories[friendId];
+        localStorage.setItem('xhs_chat_histories', JSON.stringify(chatHistories));
+        
+        // 3. 删除该角色的信件
+        letters = letters.filter(l => l.friendId !== friendId);
+        localStorage.setItem('xhs_letters', JSON.stringify(letters));
+        
+        // 4. 删除该角色的帖子
+        posts = posts.filter(p => p.author !== currentChatFriend.name || p.avatar !== currentChatFriend.avatar);
+        localStorage.setItem('xhs_posts', JSON.stringify(posts));
+        
+        // 5. 关闭弹窗并跳转
+        document.getElementById('chat-more-modal').style.display = 'none';
+        document.getElementById('chat-modal').style.display = 'none';
+        
+        // 切换到消息列表标签
+        const messageNavItem = document.querySelector('.nav-item[data-tab="message"]');
+        if (messageNavItem) {
+            messageNavItem.click();
+        }
+        
+        renderFriends();
+        alert("角色已删除");
+    }
+};
+
+// API 设置
+document.getElementById('api-settings-btn').onclick = () => {
+    document.getElementById('api-url').value = apiConfig.url || '';
+    document.getElementById('api-key').value = apiConfig.key || '';
+    const modelSelect = document.getElementById('model-select');
+    if (apiConfig.model) modelSelect.innerHTML = `<option value="${apiConfig.model}">${apiConfig.model}</option>`;
+    document.getElementById('api-modal').style.display = 'flex';
+};
+
+document.getElementById('fetch-models-btn').onclick = async () => {
+    const url = document.getElementById('api-url').value;
+    const key = document.getElementById('api-key').value;
+    if (!url || !key) return alert("请填写 API 地址和密钥");
+    try {
+        const response = await fetch(`${url}/models`, { headers: { 'Authorization': `Bearer ${key}` } });
+        const data = await response.json();
+        const models = data.data || data;
+        document.getElementById('model-select').innerHTML = models.map(m => `<option value="${m.id || m}">${m.id || m}</option>`).join('');
+        alert("拉取成功");
+    } catch (e) { alert("拉取失败: " + e.message); }
+};
+
+document.getElementById('save-api-btn').onclick = () => {
+    apiConfig.url = document.getElementById('api-url').value;
+    apiConfig.key = document.getElementById('api-key').value;
+    apiConfig.model = document.getElementById('model-select').value;
+    localStorage.setItem('xhs_api_config', JSON.stringify(apiConfig));
+    document.getElementById('api-modal').style.display = 'none';
+};
+
+// 发帖逻辑
+let postImageBase64 = null;
+document.getElementById('post-trigger').onclick = () => {
+    postImageBase64 = null;
+    document.getElementById('post-image-preview').style.display = 'none';
+    document.getElementById('post-image-tip').style.display = 'block';
+    document.getElementById('post-modal').style.display = 'flex';
+};
+
+document.getElementById('ai-post-btn').onclick = async () => {
+    const titleInput = document.getElementById('post-title');
+    const contentInput = document.getElementById('post-content');
+    const topic = titleInput.value.trim() || "任意话题";
+    
+    const btn = document.getElementById('ai-post-btn');
+    const originalText = btn.innerText;
+    btn.innerText = "生成中...";
+    btn.disabled = true;
+
+    try {
+        const content = await callAI([
+            { role: "system", content: '你是一个小红书文案专家。请根据用户提供的标题或话题，生成一篇吸引人的小红书帖子。注意：严格只返回 JSON，不要有任何前导或后置文字，不要使用 Markdown 代码块。JSON 结构：{"title": "标题", "content": "正文"}' },
+            { role: "user", content: topic }
+        ]);
+        const result = parseAIJSON(content);
+        if (result) {
+            titleInput.value = filterAIContent(result.title);
+            contentInput.value = filterAIContent(result.content);
+        }
+    } catch (e) {
+        let msg = e.message;
+        if (msg.toLowerCase().includes("quota")) msg += " (请检查 API 余额)";
+        alert("生成失败: " + msg);
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+};
+
+document.getElementById('post-image-input').onchange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            postImageBase64 = event.target.result;
+            const preview = document.getElementById('post-image-preview');
+            preview.src = postImageBase64;
+            preview.style.display = 'block';
+            document.getElementById('post-image-tip').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+document.getElementById('submit-post').onclick = () => {
+    const title = document.getElementById('post-title').value.trim();
+    const content = document.getElementById('post-content').value.trim();
+    if (!title) return alert("请输入标题");
+    
+    const newPost = {
+        id: Date.now(),
+        title: title,
+        content: content,
+        author: getMeNickname(),
+        avatar: getMeAvatar(),
+        likes: 0,
+        isLiked: false,
+        collects: 0,
+        isCollected: false,
+        comments: [],
+        image: postImageBase64,
+        bgColor: postImageBase64 ? null : [
+            '#FFF9C4', '#FFECB3', '#FFEB3B', '#FFCDD2', 
+            '#EF9A9A', '#FFE0E0', '#FFF176', '#FF8A80'
+        ][Math.floor(Math.random() * 8)]
+    };
+    posts.unshift(newPost);
+    localStorage.setItem('xhs_posts', JSON.stringify(posts));
+    renderPosts();
+    document.getElementById('post-modal').style.display = 'none';
+    // 清空
+    document.getElementById('post-title').value = '';
+    document.getElementById('post-content').value = '';
+};
+
+// 首页搜索/刷新
+document.getElementById('search-trigger').onclick = () => {
+    document.getElementById('search-modal').style.display = 'flex';
+};
+
+document.getElementById('search-gen-btn').onclick = async () => {
+    const keyword = document.getElementById('search-input').value.trim();
+    if (!keyword) return alert("请输入关键词");
+    generatePosts(keyword);
+};
+
+document.getElementById('random-gen-btn').onclick = () => {
+    generatePosts("任意话题");
+};
+
+async function generatePosts(keyword) {
+    const status = document.getElementById('search-status');
+    status.innerText = "正在生成中...";
+    
+    try {
+        const content = await callAI([
+            { role: "system", content: '生成4篇关于指定关键词的小红书帖子。注意：严格只返回 JSON，不要有任何前导或后置文字，不要使用 Markdown 代码块。JSON 结构: {"posts": [{"title": "标题", "content": "正文", "author": "昵称"}]}' },
+            { role: "user", content: keyword }
+        ]);
+        const result = parseAIJSON(content);
+        if (!result) throw new Error("解析失败");
+        const newPosts = result.posts || [];
+        
+        newPosts.forEach(p => {
+            p.id = Date.now() + Math.random();
+            p.title = filterAIContent(p.title);
+            p.content = filterAIContent(p.content);
+            p.avatar = `https://picsum.photos/60/60?random=${Math.random()}`;
+            p.likes = Math.floor(Math.random() * 1000);
+            p.isLiked = false;
+            p.collects = Math.floor(Math.random() * 500);
+            p.isCollected = false;
+            p.comments = [];
+            p.bgColor = [
+                '#FFF9C4', '#FFECB3', '#FFEB3B', '#FFCDD2', 
+                '#EF9A9A', '#FFE0E0', '#FFF176', '#FF8A80'
+            ][Math.floor(Math.random() * 8)];
+            posts.unshift(p);
+        });
+        
+        localStorage.setItem('xhs_posts', JSON.stringify(posts));
+        renderPosts();
+        document.getElementById('search-modal').style.display = 'none';
+    } catch (e) {
+        let msg = e.message;
+        if (msg.toLowerCase().includes("quota")) msg += " (请检查 API 余额)";
+        alert("生成失败: " + msg);
+    } finally {
+        status.innerText = "";
+    }
+}
+
+// 市集逻辑
+let marketProducts = JSON.parse(localStorage.getItem('xhs_market_products')) || [
+    { id: 1, title: "复古小香风外套女2024新款", price: 299, sales: 1200, image: generatePlaceholderImage("复古小香风外套", 300, 300, "#ff4d4f") },
+    { id: 2, title: "极简主义陶瓷花瓶摆件", price: 88, sales: 500, image: generatePlaceholderImage("极简主义陶瓷花瓶", 300, 300, "#faad14") }
+];
+
+function renderMarket() {
+    const grid = document.getElementById('market-product-grid');
+    if (!grid) return;
+    grid.innerHTML = marketProducts.map(p => {
+        const displayImage = p.image || generatePlaceholderImage(p.title, 300, 300, p.bgColor);
+        return `
+        <div class="product-card">
+            <img src="${displayImage}" class="product-img">
+            <div class="product-info">
+                <div class="product-title">${p.title}</div>
+                <div class="product-price-row">
+                    <span class="price-symbol">￥</span>
+                    <span class="price-num">${p.price}</span>
+                    <span class="product-sales">已售 ${p.sales}</span>
+                    <div class="add-cart-btn" onclick="addToCart(${p.id})">
+                        <i class="fas fa-cart-plus"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    }).join('');
+}
+
+document.getElementById('market-search-btn').onclick = async () => {
+    const keyword = document.getElementById('market-search-input').value.trim();
+    if (!keyword) return alert("请输入搜索词");
+
+    const btn = document.getElementById('market-search-btn');
+    btn.className = "fas fa-spinner fa-spin";
+
+    try {
+        const content = await callAI([
+            { role: "system", content: '根据关键词生成3个商品信息。注意：严格只返回 JSON，不要有任何前导或后置文字，不要使用 Markdown 代码块。JSON 结构: {"products": [{"title": "...", "price": 99}]}' }, 
+            { role: "user", content: keyword }
+        ]);
+        const result = parseAIJSON(content);
+        if (!result) throw new Error("解析失败");
+        const newItems = result.products || [];
+        
+        newItems.forEach(item => {
+            const color = Math.random() > 0.5 ? "#ff4d4f" : "#faad14"; // 红色或黄色
+            marketProducts.unshift({
+                id: Date.now() + Math.random(),
+                title: filterAIContent(item.title),
+                price: item.price,
+                sales: Math.floor(Math.random() * 100),
+                bgColor: color
+            });
+        });
+        renderMarket();
+        localStorage.setItem('xhs_market_products', JSON.stringify(marketProducts));
+    } catch (e) { 
+        let msg = e.message;
+        if (msg.toLowerCase().includes("quota")) msg += " (请检查 API 余额)";
+        alert("生成失败: " + msg); 
+    } finally { btn.className = "fas fa-search"; }
+};
+
+// 购物车管理
+let isCartManaging = false;
+document.getElementById('cart-edit-btn').onclick = () => {
+    isCartManaging = !isCartManaging;
+    const btn = document.getElementById('cart-edit-btn');
+    const checkoutBtn = document.getElementById('checkout-trigger');
+    if (isCartManaging) {
+        btn.innerText = "完成";
+        checkoutBtn.innerText = "删除";
+        checkoutBtn.style.background = "var(--xhs-gray)";
+    } else {
+        btn.innerText = "管理";
+        checkoutBtn.innerText = "结算";
+        checkoutBtn.style.background = "var(--xhs-red)";
+    }
+};
+
+// 结算按钮逻辑
+document.getElementById('checkout-trigger').onclick = () => {
+    const selectedItems = cart.filter(item => item.selected);
+    if (selectedItems.length === 0) return alert("请选择商品");
+    
+    if (isCartManaging) {
+        if (confirm(`确定删除选中的 ${selectedItems.length} 个商品吗？`)) {
+            cart = cart.filter(item => !item.selected);
+            saveCart();
+            renderCart();
+        }
+    } else {
+        document.getElementById('checkout-method-modal').style.display = 'flex';
+    }
+};
+
+// 结算方式点击事件
+document.getElementById('pay-self-btn').onclick = () => {
+    const selectedItems = cart.filter(item => item.selected);
+    const total = selectedItems.reduce((sum, item) => sum + item.price * item.count, 0);
+    alert(`支付成功！共消费 ￥${total.toFixed(2)}`);
+    cart = cart.filter(item => !item.selected);
+    saveCart();
+    renderCart();
+    document.getElementById('checkout-method-modal').style.display = 'none';
+    document.getElementById('cart-modal').style.display = 'none';
+};
+
+document.getElementById('pay-by-friend-btn').onclick = () => {
+    const list = document.getElementById('pay-friend-list');
+    if (friends.length === 0) return alert("请先添加好友");
+    
+    list.innerHTML = friends.map(f => `
+        <div class="wb-select-item" onclick="sendPayRequestToFriend(${f.id})">
+            <img src="${f.avatar}" style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px;">
+            <span>${f.name}</span>
+        </div>
+    `).join('');
+    document.getElementById('select-pay-friend-modal').style.display = 'flex';
+    document.getElementById('checkout-method-modal').style.display = 'none';
+};
+
+window.sendPayRequestToFriend = (friendId) => {
+    const friend = friends.find(f => f.id === friendId);
+    const selectedItems = cart.filter(item => item.selected);
+    const totalPrice = selectedItems.reduce((sum, item) => sum + item.price * item.count, 0);
+    
+    // 记录购买的商品信息，以便角色能看到
+    const productDetails = selectedItems.map(i => `${i.title}(￥${i.price} x ${i.count})`).join('; ');
+    
+    const payData = {
+        type: 'mine',
+        isPayCard: true,
+        items: selectedItems,
+        totalPrice: totalPrice,
+        // 增强 text 字段，让 AI 能够清晰感知到购买的具体商品和数量
+        text: `[代付请求] 帮我付下款呗~ 我想买：${productDetails}。总计：￥${totalPrice.toFixed(2)}。`
+    };
+    
+    if (!chatHistories[friend.id]) chatHistories[friend.id] = [];
+    chatHistories[friend.id].push(payData);
+    localStorage.setItem('xhs_chat_histories', JSON.stringify(chatHistories));
+    
+    document.getElementById('select-pay-friend-modal').style.display = 'none';
+    document.getElementById('cart-modal').style.display = 'none';
+    
+    // 结算成功后清空购物车中已选中的商品
+    cart = cart.filter(item => !item.selected);
+    saveCart();
+    renderCart();
+    
+    openChat(friend.id);
+    // 触发 AI 回复
+    setTimeout(() => aiReplyMessage(false), 800);
+};
+
+document.getElementById('cart-select-all').onclick = () => {
+    const allSelected = cart.length > 0 && cart.every(item => item.selected);
+    cart.forEach(item => item.selected = !allSelected);
+    saveCart();
+    renderCart();
+};
+
+// 个人主页逻辑
+document.querySelectorAll('.me-tab').forEach(tab => {
+    tab.onclick = () => {
+        document.querySelectorAll('.me-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        renderMeNotes(tab.dataset.meTab);
+    };
+});
+
+function renderMeNotes(type = 'notes') {
+    const grid = document.getElementById('me-notes-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    let filtered = [];
+    if (type === 'notes') {
+        filtered = posts.filter(p => p.author === getMeNickname());
+    } else if (type === 'likes') {
+        filtered = posts.filter(p => p.isLiked);
+    } else if (type === 'collects') {
+        filtered = posts.filter(p => p.isCollected);
+    }
+    
+    filtered.forEach(post => {
+        const card = createCard(post);
+        grid.appendChild(card);
+    });
+}
+
+// 互动按钮修复
+document.getElementById('detail-like-btn').onclick = () => {
+    if (currentDetailPost) toggleLike(null, currentDetailPost.id);
+};
+document.getElementById('detail-collect-btn').onclick = () => {
+    if (currentDetailPost) toggleCollect(null, currentDetailPost.id);
+};
+
+// 评论弹窗逻辑
+document.getElementById('footer-comment-trigger').onclick = () => {
+    document.getElementById('comment-input-modal').style.display = 'flex';
+    document.getElementById('comment-input').focus();
+};
+
+document.getElementById('send-comment-btn').onclick = () => {
+    const input = document.getElementById('comment-input');
+    const text = input.value.trim();
+    if (!text || !currentDetailPost) return;
+    
+    const newComment = {
+        user: getMeNickname(),
+        text: text,
+        time: "刚刚",
+        location: "未知",
+        avatar: getMeAvatar()
+    };
+    
+    if (!currentDetailPost.comments) currentDetailPost.comments = [];
+    currentDetailPost.comments.push(newComment);
+    localStorage.setItem('xhs_posts', JSON.stringify(posts));
+    renderComments();
+    
+    input.value = '';
+    document.getElementById('comment-input-modal').style.display = 'none';
+};
+
+document.getElementById('ai-comment-btn').onclick = async () => {
+    if (!currentDetailPost) return;
+    const btn = document.getElementById('ai-comment-btn');
+    const originalText = btn.innerText;
+    btn.innerText = "生成中...";
+    try {
+        const content = await callAI([
+            { role: "system", content: '你现在是小红书评论区。请根据帖子内容生成一条简短、真实的评论。注意：严格只返回 JSON，不要有任何前导或后置文字，不要使用 Markdown 代码块。JSON 结构: {"text": "评论内容"}' },
+            { role: "user", content: `帖子标题: ${currentDetailPost.title}
+正文: ${currentDetailPost.content}` }
+        ]);
+        const result = parseAIJSON(content);
+        if (result && result.text) {
+            document.getElementById('comment-input').value = filterAIContent(result.text);
+        }
+    } catch (e) {
+        let msg = e.message;
+        if (msg.toLowerCase().includes("quota")) msg += " (请检查 API 余额)";
+        alert("生成失败: " + msg);
+    } finally {
+        btn.innerText = originalText;
+    }
+};
+
+// 点击外部关闭评论弹窗
+window.addEventListener('click', (e) => {
+    const modal = document.getElementById('comment-input-modal');
+    if (e.target === modal) {
+        modal.style.display = 'none';
+    }
+});
+
+// 头像上传
+document.getElementById('me-avatar').onclick = () => document.getElementById('avatar-input').click();
+document.getElementById('avatar-input').onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const maxSize = 200;
+            canvas.width = maxSize;
+            canvas.height = maxSize;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, maxSize, maxSize);
+            const compressed = canvas.toDataURL('image/jpeg', 0.7);
+            try {
+                localStorage.setItem('xhs_me_avatar', compressed);
+                document.getElementById('me-avatar').src = compressed;
+            } catch (err) {
+                alert('头像保存失败，存储空间不足');
+            }
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+};
+
+// 从 QQ 同步好友到小红书
+function syncFriendsFromQQ() {
+    try {
+        const qqFriends = JSON.parse(localStorage.getItem('qq_friends') || '[]');
+        if (qqFriends.length === 0) return;
+        let changed = false;
+        qqFriends.forEach(qf => {
+            const exists = friends.find(f => f.name === qf.name);
+            if (!exists) {
+                friends.push({
+                    id: Date.now() + Math.floor(Math.random() * 10000),
+                    name: qf.name,
+                    avatar: qf.avatarUrl || ('https://picsum.photos/100/100?random=' + Date.now()),
+                    lastMsg: '',
+                    persona: qf.persona || '普通人'
+                });
+                changed = true;
+            }
+        });
+        if (changed) {
+            localStorage.setItem('xhs_friends', JSON.stringify(friends));
+        }
+    } catch (e) {
+        console.error('同步QQ好友失败', e);
+    }
+}
+
+// 底部导航
+document.querySelectorAll('.nav-item[data-tab]').forEach(item => {
+    item.onclick = () => {
+        const tab = item.getAttribute('data-tab');
+        document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
+        document.getElementById(`${tab}-container`).style.display = (tab === 'market' || tab === 'home') ? 'flex' : 'block';
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        if (tab === 'market') renderMarket();
+        if (tab === 'home') renderPosts();
+        if (tab === 'message') {
+            syncFriendsFromQQ();
+            renderFriends();
+        }
+        if (tab === 'me') renderMeNotes();
+    };
+});
+
+document.getElementById('detail-share-btn').onclick = () => {
+    const list = document.getElementById('forward-friend-list');
+    if (friends.length === 0) return alert("请先添加好友");
+    
+    list.innerHTML = friends.map(f => `
+        <div class="wb-select-item" onclick="forwardPostToFriend(${f.id})">
+            <img src="${f.avatar}" style="width: 30px; height: 30px; border-radius: 50%; margin-right: 10px;">
+            <span>${f.name}</span>
+        </div>
+    `).join('');
+    document.getElementById('select-forward-friend-modal').style.display = 'flex';
+};
+
+window.forwardPostToFriend = async (friendId) => {
+    if (!currentDetailPost) return;
+    const friend = friends.find(f => f.id === friendId);
+    if (!friend) return;
+
+    const postData = {
+        type: 'mine',
+        isPostCard: true,
+        postId: currentDetailPost.id,
+        title: currentDetailPost.title,
+        image: currentDetailPost.image || generatePlaceholderImage(currentDetailPost.title, 400, 500, currentDetailPost.bgColor),
+        author: currentDetailPost.author,
+        authorAvatar: currentDetailPost.avatar,
+        text: `[转发帖子] ${currentDetailPost.title}`
+    };
+    
+    if (!chatHistories[friend.id]) chatHistories[friend.id] = [];
+    chatHistories[friend.id].push(postData);
+    localStorage.setItem('xhs_chat_histories', JSON.stringify(chatHistories));
+    
+    document.getElementById('select-forward-friend-modal').style.display = 'none';
+    document.getElementById('detail-modal').style.display = 'none';
+    
+    // 自动打开聊天窗口并触发回复
+    openChat(friend.id);
+    setTimeout(() => aiReplyMessage(false), 500);
+};
+
+window.openPostFromChat = (postId) => {
+    const post = posts.find(p => p.id === postId);
+    if (post) openDetail(post);
+};
+
+// 弹窗关闭逻辑
+document.getElementById('close-post-modal').onclick = () => document.getElementById('post-modal').style.display = 'none';
+document.getElementById('close-detail-modal').onclick = () => document.getElementById('detail-modal').style.display = 'none';
+document.getElementById('close-api-modal').onclick = () => document.getElementById('api-modal').style.display = 'none';
+document.getElementById('close-cart-modal').onclick = () => {
+    isCartManaging = false; // 关闭时重置管理模式
+    document.getElementById('cart-modal').style.display = 'none';
+};
+document.getElementById('close-checkout-method').onclick = () => document.getElementById('checkout-method-modal').style.display = 'none';
+document.getElementById('close-search-modal').onclick = () => document.getElementById('search-modal').style.display = 'none';
+document.getElementById('close-edit-friend-modal').onclick = () => document.getElementById('edit-friend-modal').style.display = 'none';
+document.getElementById('close-diary-modal').onclick = () => document.getElementById('diary-modal').style.display = 'none';
+document.getElementById('close-select-forward-friend-modal').onclick = () => document.getElementById('select-forward-friend-modal').style.display = 'none';
+document.getElementById('close-select-pay-friend-modal').onclick = () => document.getElementById('select-pay-friend-modal').style.display = 'none';
+document.getElementById('close-diary-select-modal').onclick = () => document.getElementById('diary-select-modal').style.display = 'none';
+document.getElementById('close-diary-main-modal').onclick = () => document.getElementById('diary-main-modal').style.display = 'none';
+document.getElementById('close-diary-edit-modal').onclick = () => document.getElementById('diary-edit-modal').style.display = 'none';
+
+// 导出数据
+document.getElementById('export-data-btn').onclick = () => {
+    const data = {
+        posts: posts,
+        friends: friends,
+        chatHistories: chatHistories,
+        apiConfig: apiConfig,
+        worldBooks: worldBooks,
+        marketProducts: marketProducts,
+        cart: cart,
+        meAvatar: localStorage.getItem('xhs_me_avatar'),
+        meNickname: document.getElementById('me-nickname')?.innerText,
+        meId: document.getElementById('me-id')?.innerText,
+        meBio: document.getElementById('me-bio')?.innerText,
+        meStats: {
+            following: document.getElementById('stat-following')?.innerText,
+            followers: document.getElementById('stat-followers')?.innerText,
+            likes: document.getElementById('stat-likes')?.innerText
+        }
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `shushu_data_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};
+
+// 导入数据
+document.getElementById('import-data-btn').onclick = () => {
+    document.getElementById('import-file-input').click();
+};
+
+document.getElementById('import-file-input').onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const data = JSON.parse(event.target.result);
+            if (confirm('导入数据将覆盖当前所有数据，确定继续吗？')) {
+                if (data.posts) localStorage.setItem('xhs_posts', JSON.stringify(data.posts));
+                if (data.friends) localStorage.setItem('xhs_friends', JSON.stringify(data.friends));
+                if (data.chatHistories) localStorage.setItem('xhs_chat_histories', JSON.stringify(data.chatHistories));
+                if (data.apiConfig) localStorage.setItem('xhs_api_config', JSON.stringify(data.apiConfig));
+                if (data.worldBooks) localStorage.setItem('xhs_world_books', JSON.stringify(data.worldBooks));
+                if (data.marketProducts) localStorage.setItem('xhs_market_products', JSON.stringify(data.marketProducts));
+                if (data.cart) localStorage.setItem('xhs_cart', JSON.stringify(data.cart));
+                if (data.meAvatar) localStorage.setItem('xhs_me_avatar', data.meAvatar);
+                if (data.meNickname) localStorage.setItem('xhs_me_nickname', data.meNickname);
+                if (data.meId) localStorage.setItem('xhs_me_id', data.meId);
+                if (data.meBio) localStorage.setItem('xhs_me_bio', data.meBio);
+                if (data.meStats) localStorage.setItem('xhs_me_stats', JSON.stringify(data.meStats));
+                
+                alert('数据导入成功！');
+                location.reload(); // 刷新页面以确保所有状态同步
+            }
+        } catch (err) {
+            alert('导入失败：文件格式错误');
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+};
+
+// 自动清理旧数据中的大图片以释放空间
+function cleanupStorage() {
+    let cleaned = false;
+    const savedPosts = JSON.parse(localStorage.getItem('xhs_posts'));
+    if (savedPosts) {
+        savedPosts.forEach(p => {
+            if (p.image && p.image.startsWith('data:image/png;base64')) {
+                // 如果是自动生成的占位图（通常比较大），则移除它，改用 bgColor
+                p.image = null;
+                if (!p.bgColor) p.bgColor = '#FFE0E0';
+                cleaned = true;
+            }
+        });
+        if (cleaned) {
+            localStorage.setItem('xhs_posts', JSON.stringify(savedPosts));
+            posts = savedPosts;
+        }
+    }
+    
+    const market = JSON.parse(localStorage.getItem('xhs_market_products'));
+    if (market) {
+        let mCleaned = false;
+        market.forEach(p => {
+            if (p.image && p.image.startsWith('data:image/png;base64')) {
+                p.image = null;
+                if (!p.bgColor) p.bgColor = '#ff4d4f';
+                mCleaned = true;
+            }
+        });
+        if (mCleaned) {
+            localStorage.setItem('xhs_market_products', JSON.stringify(market));
+            marketProducts = market;
+        }
+    }
+
+    const savedCart = JSON.parse(localStorage.getItem('xhs_cart'));
+    if (savedCart) {
+        let cCleaned = false;
+        savedCart.forEach(item => {
+            if (item.image && item.image.startsWith('data:image/png;base64')) {
+                item.image = null;
+                if (!item.bgColor) item.bgColor = '#ff4d4f';
+                cCleaned = true;
+            }
+        });
+        if (cCleaned) {
+            localStorage.setItem('xhs_cart', JSON.stringify(savedCart));
+            cart = savedCart;
+        }
+    }
+}
+
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+    cleanupStorage();
+    // 加载个人信息
+    const savedNickname = localStorage.getItem('xhs_me_nickname');
+    const savedId = localStorage.getItem('xhs_me_id');
+    const savedBio = localStorage.getItem('xhs_me_bio');
+    const savedStats = JSON.parse(localStorage.getItem('xhs_me_stats'));
+
+    if (savedNickname) document.getElementById('me-nickname').innerText = savedNickname;
+    if (savedId) document.getElementById('me-id').innerText = savedId;
+    if (savedBio) document.getElementById('me-bio').innerText = savedBio;
+    if (savedStats) {
+        if (savedStats.following) document.getElementById('stat-following').innerText = savedStats.following;
+        if (savedStats.followers) document.getElementById('stat-followers').innerText = savedStats.followers;
+        if (savedStats.likes) document.getElementById('stat-likes').innerText = savedStats.likes;
+    }
+
+    // 监听个人信息修改并保存
+    const profileFields = ['me-nickname', 'me-id', 'me-bio', 'stat-following', 'stat-followers', 'stat-likes'];
+    profileFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('blur', () => {
+                if (id.startsWith('stat-')) {
+                    const stats = {
+                        following: document.getElementById('stat-following').innerText,
+                        followers: document.getElementById('stat-followers').innerText,
+                        likes: document.getElementById('stat-likes').innerText
+                    };
+                    localStorage.setItem('xhs_me_stats', JSON.stringify(stats));
+                } else {
+                    localStorage.setItem(`xhs_${id.replace('-', '_')}`, el.innerText);
+                }
+            });
+        }
+    });
+
+    document.getElementById('me-avatar').src = getMeAvatar();
+    renderPosts();
+    renderFriends();
+});
+
+// 购物车基础逻辑
+function saveCart() { localStorage.setItem('xhs_cart', JSON.stringify(cart)); }
+window.addToCart = (productId) => {
+    const product = marketProducts.find(p => p.id === productId);
+    if (!product) return;
+    const existingItem = cart.find(item => item.id === productId);
+    if (existingItem) existingItem.count++;
+    else cart.push({ ...product, count: 1, selected: true });
+    saveCart();
+    alert("已加入购物车");
+}
+function renderCart() {
+    const list = document.getElementById('cart-items-list');
+    if (!list) return;
+    if (cart.length === 0) { 
+        list.innerHTML = '<div class="empty-tip">购物车空空如也</div>'; 
+        updateCartTotal();
+        // 重置管理状态
+        const checkoutBtn = document.getElementById('checkout-trigger');
+        if (checkoutBtn) {
+            checkoutBtn.innerText = "结算";
+            checkoutBtn.style.background = "var(--xhs-red)";
+        }
+        return; 
+    }
+    list.innerHTML = cart.map((item, index) => {
+        const displayImage = item.image || generatePlaceholderImage(item.title, 300, 300, item.bgColor);
+        return `
+        <div class="cart-item">
+            <i class="${item.selected ? 'fas fa-check-circle active' : 'far fa-circle'} cart-item-select" onclick="toggleCartItem(${index})"></i>
+            <img src="${displayImage}" class="cart-item-img">
+            <div class="cart-item-info">
+                <div class="cart-item-title">${item.title}</div>
+                <div class="cart-item-bottom">
+                    <div class="cart-item-price">￥${item.price}</div>
+                    <div class="cart-item-counter">
+                        <div class="counter-btn" onclick="updateCartCount(${index}, -1)">-</div>
+                        <div class="counter-num">${item.count}</div>
+                        <div class="counter-btn" onclick="updateCartCount(${index}, 1)">+</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    }).join('');
+    
+    const selectAllBtn = document.getElementById('cart-select-all');
+    if (selectAllBtn) {
+        const allSelected = cart.length > 0 && cart.every(item => item.selected);
+        selectAllBtn.className = allSelected ? 'fas fa-check-circle active' : 'far fa-circle';
+    }
+
+    // 确保结算按钮文字正确
+    const checkoutBtn = document.getElementById('checkout-trigger');
+    const editBtn = document.getElementById('cart-edit-btn');
+    if (checkoutBtn && editBtn) {
+        if (isCartManaging) {
+            editBtn.innerText = "完成";
+            checkoutBtn.innerText = "删除";
+            checkoutBtn.style.background = "var(--xhs-gray)";
+        } else {
+            editBtn.innerText = "管理";
+            checkoutBtn.innerText = "结算";
+            checkoutBtn.style.background = "var(--xhs-red)";
+        }
+    }
+    
+    updateCartTotal();
+}
+
+window.handlePayAgree = (index) => {
+    alert("角色已为你支付成功！");
+};
+window.toggleCartItem = (index) => { cart[index].selected = !cart[index].selected; saveCart(); renderCart(); }
+window.updateCartCount = (index, delta) => {
+    cart[index].count += delta;
+    if (cart[index].count <= 0) cart.splice(index, 1);
+    saveCart();
+    renderCart();
+}
+window.updateCartTotal = () => {
+    const total = cart.reduce((sum, item) => item.selected ? sum + item.price * item.count : sum, 0);
+    document.getElementById('cart-total-price').innerText = total.toFixed(2);
+}
+document.querySelector('.market-cart').onclick = () => { renderCart(); document.getElementById('cart-modal').style.display = 'flex'; };
+
+// 添加好友逻辑
+document.getElementById('add-friend-trigger').onclick = () => {
+    document.getElementById('friend-name').value = '';
+    document.getElementById('friend-persona').value = '';
+    document.getElementById('friend-modal').style.display = 'flex';
+    document.getElementById('sidebar').classList.remove('active');
+    document.getElementById('sidebar-overlay').style.display = 'none';
+};
+
+document.getElementById('close-friend-modal').onclick = () => {
+    document.getElementById('friend-modal').style.display = 'none';
+};
+
+document.getElementById('save-friend-btn').onclick = () => {
+    const name = document.getElementById('friend-name').value.trim();
+    const persona = document.getElementById('friend-persona').value.trim();
+    if (!name || !persona) return alert("请填写完整信息");
+
+    const newFriend = {
+        id: Date.now(),
+        name: name,
+        avatar: `https://picsum.photos/100/100?random=${Date.now()}`,
+        lastMsg: "你好！",
+        persona: persona
+    };
+
+    friends.push(newFriend);
+    localStorage.setItem('xhs_friends', JSON.stringify(friends));
+
+    // 同步到 QQ 好友列表
+    try {
+        let qqFriends = JSON.parse(localStorage.getItem('qq_friends') || '[]');
+        const existsInQQ = qqFriends.find(f => f.name === name);
+        if (!existsInQQ) {
+            qqFriends.push({
+                name: name,
+                initial: name[0],
+                lastMsg: '',
+                persona: persona,
+                freq: 0,
+                lastMoment: Date.now(),
+                avatarUrl: '',
+                mountedBooks: [],
+                group: '我的好友',
+                memoryFreq: 20,
+                lastSummaryIdx: 0,
+                longMemory: ''
+            });
+            localStorage.setItem('qq_friends', JSON.stringify(qqFriends));
+        }
+    } catch (e) {
+        console.error('同步到QQ失败', e);
+    }
+
+    renderFriends();
+    document.getElementById('friend-modal').style.display = 'none';
+    alert("添加成功");
+};
+
+// 世界书逻辑
+function renderWorldBooks() {
+    const list = document.getElementById('world-book-list');
+    if (!list) return;
+    if (worldBooks.length === 0) {
+        list.innerHTML = '<div class="empty-tip">暂无世界书条目</div>';
+        return;
+    }
+    list.innerHTML = worldBooks.map((item, index) => `
+        <div class="world-book-item">
+            <div class="wb-item-info">
+                <div class="wb-item-title">${item.title}</div>
+                <div class="wb-item-snippet">${item.content}</div>
+            </div>
+            <div class="wb-item-actions">
+                <i class="fas fa-edit" onclick="editWorldBookItem(${index})"></i>
+                <i class="fas fa-trash" onclick="deleteWorldBookItem(${index})"></i>
+            </div>
+        </div>
+    `).join('');
+}
+
+document.getElementById('world-book-btn').onclick = () => {
+    worldBooks = loadMergedWorldBooks();
+    renderWorldBooks();
+    document.getElementById('world-book-modal').style.display = 'flex';
+    document.getElementById('sidebar').classList.remove('active');
+    document.getElementById('sidebar-overlay').style.display = 'none';
+};
+
+document.getElementById('top-world-book-btn').onclick = () => {
+    worldBooks = loadMergedWorldBooks();
+    renderWorldBooks();
+    document.getElementById('world-book-modal').style.display = 'flex';
+};
+
+document.getElementById('close-world-book-modal').onclick = () => {
+    document.getElementById('world-book-modal').style.display = 'none';
+};
+
+let editingWBIndex = -1;
+
+document.getElementById('add-world-book-item-btn').onclick = () => {
+    editingWBIndex = -1;
+    document.getElementById('wb-item-title').value = '';
+    document.getElementById('wb-item-content').value = '';
+    document.getElementById('edit-world-book-modal').style.display = 'flex';
+};
+
+document.getElementById('close-edit-world-book-modal').onclick = () => {
+    document.getElementById('edit-world-book-modal').style.display = 'none';
+};
+
+document.getElementById('save-world-book-item-btn').onclick = () => {
+    const title = document.getElementById('wb-item-title').value.trim();
+    const content = document.getElementById('wb-item-content').value.trim();
+    if (!title || !content) return alert("请填写完整信息");
+
+    if (editingWBIndex > -1) {
+        worldBooks[editingWBIndex] = { title, content };
+    } else {
+        worldBooks.push({ title, content });
+    }
+
+    localStorage.setItem('xhs_world_books', JSON.stringify(worldBooks));
+
+    // 同步到主页面的世界书
+    try {
+        let mainWbData = JSON.parse(localStorage.getItem('wb_data') || '{"groups":["默认分组"],"books":[]}');
+        const existsInMain = mainWbData.books.find(b => b.title === title);
+        if (!existsInMain) {
+            mainWbData.books.push({
+                title: title,
+                content: content,
+                group: '默认分组',
+                mode: 'global',
+                keyword: null,
+                scope: 'global'
+            });
+            localStorage.setItem('wb_data', JSON.stringify(mainWbData));
+        } else {
+            existsInMain.content = content;
+            localStorage.setItem('wb_data', JSON.stringify(mainWbData));
+        }
+    } catch (e) {
+        console.error('同步到主页面世界书失败', e);
+    }
+
+    renderWorldBooks();
+    document.getElementById('edit-world-book-modal').style.display = 'none';
+};
+
+window.editWorldBookItem = (index) => {
+    editingWBIndex = index;
+    const item = worldBooks[index];
+    document.getElementById('wb-item-title').value = item.title;
+    document.getElementById('wb-item-content').value = item.content;
+    document.getElementById('edit-world-book-modal').style.display = 'flex';
+};
+
+window.deleteWorldBookItem = (index) => {
+    if (confirm("确定删除该条目吗？")) {
+        worldBooks.splice(index, 1);
+        localStorage.setItem('xhs_world_books', JSON.stringify(worldBooks));
+        renderWorldBooks();
+    }
+};
+
+// 链接世界书到好友
+document.getElementById('link-world-book-btn').onclick = () => {
+    const list = document.getElementById('wb-select-list');
+    if (worldBooks.length === 0) {
+        alert("请先在世界书中添加条目");
+        return;
+    }
+    list.innerHTML = worldBooks.map((item, index) => `
+        <div class="wb-select-item" onclick="linkWBToFriend(${index})">
+            <i class="fas fa-book"></i>
+            <span>${item.title}</span>
+        </div>
+    `).join('');
+    document.getElementById('select-world-book-modal').style.display = 'flex';
+    document.getElementById('chat-more-modal').style.display = 'none';
+};
+
+document.getElementById('close-select-wb-modal').onclick = () => {
+    document.getElementById('select-world-book-modal').style.display = 'none';
+};
+
+window.linkWBToFriend = (index) => {
+    const item = worldBooks[index];
+    if (!currentChatFriend.linkedWBs) currentChatFriend.linkedWBs = [];
+    if (!currentChatFriend.linkedWBs.includes(index)) {
+        currentChatFriend.linkedWBs.push(index);
+        localStorage.setItem('xhs_friends', JSON.stringify(friends));
+        alert(`已链接世界书：${item.title}`);
+    } else {
+        alert("该条目已链接");
+    }
+    document.getElementById('select-world-book-modal').style.display = 'none';
+};
+
+// 角色日记功能
+window.generateDiary = async () => {
+    if (!currentChatFriend) return;
+    
+    const diaryBody = document.getElementById('diary-body');
+    const diaryModal = document.getElementById('diary-modal');
+    
+    diaryBody.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> 正在偷看日记中...</div>';
+    diaryModal.style.display = 'flex';
+
+    const prompt = `《看ta日记》
+扮演：${currentChatFriend.persona}。
+请以该角色的口吻写一篇今天的日记。
+格式要求：
+💌《______》（填写日记名字，有创意，符合本人最近心情）
+———————————————
+☀️天气：______（例：晴朗/26℃）
+❤️心情：______
+————————————————
+[填写日记内容]（要求：写你今天的日记，要求情感真切，辞藻华丽，文笔优雅文艺一点，带点可爱的emjoi表情最好了，内容不少于三百字，不少于五段，内容多一些你的小秘密和对我的想法）`;
+
+    try {
+        const content = await callAI([
+            { role: "system", content: "你是一个日记撰写助手，请严格按照用户要求的格式和人设进行创作。" },
+            { role: "user", content: prompt }
+        ], false);
+        const filteredContent = filterAIContent(content);
+        diaryBody.innerText = filteredContent;
+    } catch (e) {
+        let msg = e.message;
+        if (msg.toLowerCase().includes("quota")) msg += " (请检查 API 余额)";
+        diaryBody.innerHTML = `<div style="color:red; padding:20px;">偷看失败了: ${msg}</div>`;
+    }
+};
+
+document.getElementById('chat-friend-avatar').ondblclick = window.generateDiary;
+
+// 信箱逻辑
+let letters = JSON.parse(localStorage.getItem('xhs_letters')) || [];
+let currentLetter = null;
+
+// 交换日记逻辑
+let exchangeDiaries = JSON.parse(localStorage.getItem('xhs_exchange_diaries')) || {};
+let currentDiaryFriend = null;
+
+function renderDiaryFriendList() {
+    const list = document.getElementById('diary-friend-list');
+    if (!list) return;
+    if (friends.length === 0) {
+        list.innerHTML = '<div class="empty-tip">暂无角色，快去添加吧</div>';
+        return;
+    }
+    list.innerHTML = friends.map(f => `
+        <div class="friend-item" onclick="openExchangeDiary(${f.id})">
+            <img src="${f.avatar}" class="friend-avatar">
+            <div class="friend-info">
+                <div class="friend-name">${f.name}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function openExchangeDiary(friendId) {
+    const friend = friends.find(f => f.id === friendId);
+    if (!friend) return;
+    currentDiaryFriend = friend;
+    document.getElementById('diary-title').innerText = `与 ${friend.name} 的交换日记`;
+    document.getElementById('diary-select-modal').style.display = 'none';
+    document.getElementById('diary-main-modal').style.display = 'flex';
+    renderDiaryTimeline();
+}
+
+function renderDiaryTimeline() {
+    const timeline = document.getElementById('diary-timeline');
+    const entries = exchangeDiaries[currentDiaryFriend.id] || [];
+    const waitBtn = document.getElementById('wait-reply-btn');
+    
+    if (entries.length === 0) {
+        timeline.innerHTML = '<div class="empty-tip">还没有日记，写下第一篇吧</div>';
+        waitBtn.style.display = 'none';
+    } else {
+        timeline.innerHTML = entries.map((e, index) => `
+            <div class="diary-item ${e.type}" onclick="showDiaryEntryDetail(${index})">
+                <div class="diary-item-date">
+                    <span>${e.time}</span>
+                    <span>${e.type === 'mine' ? '我' : currentDiaryFriend.name}</span>
+                </div>
+                <div class="diary-item-title">${e.title}</div>
+            </div>
+        `).join('');
+        
+        // 如果最后一篇是自己写的，显示等待回信按钮
+        const lastEntry = entries[entries.length - 1];
+        waitBtn.style.display = lastEntry.type === 'mine' ? 'block' : 'none';
+    }
+    timeline.scrollTop = timeline.scrollHeight;
+}
+
+window.showDiaryEntryDetail = (index) => {
+    const entries = exchangeDiaries[currentDiaryFriend.id] || [];
+    const entry = entries[index];
+    if (!entry) return;
+    
+    document.getElementById('diary-entry-detail-title').innerText = entry.title;
+    document.getElementById('diary-entry-detail-content').innerText = entry.content;
+    document.getElementById('diary-entry-detail-modal').style.display = 'flex';
+};
+
+document.getElementById('exchange-diary-btn').onclick = () => {
+    renderDiaryFriendList();
+    document.getElementById('diary-select-modal').style.display = 'flex';
+    document.getElementById('sidebar').classList.remove('active');
+    document.getElementById('sidebar-overlay').style.display = 'none';
+};
+
+document.getElementById('close-diary-select-modal').onclick = () => {
+    document.getElementById('diary-select-modal').style.display = 'none';
+};
+
+document.getElementById('close-diary-main-modal').onclick = () => {
+    document.getElementById('diary-main-modal').style.display = 'none';
+};
+
+document.getElementById('close-diary-entry-detail-modal').onclick = () => {
+    document.getElementById('diary-entry-detail-modal').style.display = 'none';
+};
+
+document.getElementById('write-diary-btn').onclick = () => {
+    document.getElementById('diary-entry-title').value = '';
+    document.getElementById('diary-entry-content').value = '';
+    document.getElementById('diary-edit-modal').style.display = 'flex';
+};
+
+document.getElementById('close-diary-edit-modal').onclick = () => {
+    document.getElementById('diary-edit-modal').style.display = 'none';
+};
+
+document.getElementById('save-diary-btn').onclick = () => {
+    const title = document.getElementById('diary-entry-title').value.trim();
+    const content = document.getElementById('diary-entry-content').value.trim();
+    if (!title || !content) return alert("请填写完整内容");
+
+    if (!exchangeDiaries[currentDiaryFriend.id]) exchangeDiaries[currentDiaryFriend.id] = [];
+    
+    exchangeDiaries[currentDiaryFriend.id].push({
+        type: 'mine',
+        title: title,
+        content: content,
+        time: new Date().toLocaleString()
+    });
+
+    localStorage.setItem('xhs_exchange_diaries', JSON.stringify(exchangeDiaries));
+    renderDiaryTimeline();
+    document.getElementById('diary-edit-modal').style.display = 'none';
+};
+
+document.getElementById('wait-reply-btn').onclick = async () => {
+    if (!currentDiaryFriend) return;
+    
+    const btn = document.getElementById('wait-reply-btn');
+    btn.disabled = true;
+    btn.innerText = "正在回信...";
+
+    try {
+        const entries = exchangeDiaries[currentDiaryFriend.id] || [];
+        const chatHistory = chatHistories[currentDiaryFriend.id] || [];
+        
+        const diaryContext = entries.slice(-5).map(e => `${e.type === 'mine' ? '用户' : '你'}写的日记：\n标题：${e.title}\n内容：${e.content}`).join('\n\n');
+        const chatContext = chatHistory.slice(-10).map(m => `${m.type === 'mine' ? '用户' : '你'}：${m.text}`).join('\n');
+
+        const prompt = `扮演：${currentDiaryFriend.persona}。
+你正在和用户进行交换日记。
+以下是最近的日记记录：
+${diaryContext}
+
+以下是你们最近的聊天记录：
+${chatContext}
+
+请根据以上信息，给用户回一篇日记。
+要求：
+1. 必须针对用户最新的一篇日记内容进行回应。
+2. 情感真挚，符合你的人设。
+3. 字数必须在500字以上。
+4. 严禁使用括号进行动作或神态描写。
+5. 回复时需要按照写信格式回复（包含称呼、正文、落款）。
+6. 注意：严格只返回 JSON，不要有任何前导或后置文字，不要使用 Markdown 代码块。
+JSON 结构: {"title": "日记标题", "content": "日记正文"}`;
+
+        const response = await callAI([
+            { role: "system", content: "你是一个交换日记高手，请严格按照要求创作。" },
+            { role: "user", content: prompt }
+        ], true);
+        
+        const result = parseAIJSON(response);
+        if (!result) throw new Error("解析失败");
+
+        exchangeDiaries[currentDiaryFriend.id].push({
+            type: 'theirs',
+            title: filterAIContent(result.title),
+            content: filterAIContent(result.content),
+            time: new Date().toLocaleString()
+        });
+
+        localStorage.setItem('xhs_exchange_diaries', JSON.stringify(exchangeDiaries));
+        renderDiaryTimeline();
+        alert(`${currentDiaryFriend.name} 已经回信了！`);
+    } catch (e) {
+        let msg = e.message;
+        if (msg.toLowerCase().includes("quota")) msg += " (请检查 API 余额)";
+        alert("回信失败: " + msg);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "等待回信";
+    }
+};
+
+function renderMailbox() {
+    const body = document.getElementById('mailbox-body');
+    if (!body) return;
+    if (letters.length === 0) {
+        body.innerHTML = '<div class="empty-tip">信箱空空如也，快让角色给你写信吧</div>';
+        return;
+    }
+    body.innerHTML = letters.map((l, index) => `
+        <div class="letter-item" onclick="openLetter(${index})">
+            <div class="letter-item-header">
+                <img src="${l.avatar}" class="letter-item-avatar">
+                <span class="letter-item-name">${l.from}</span>
+            </div>
+            <div class="letter-item-snippet">${l.content.substring(0, 60)}...</div>
+            <div class="letter-item-time">${l.time}</div>
+        </div>
+    `).reverse().join('');
+}
+
+window.openLetter = (index) => {
+    currentLetter = letters[index];
+    const modal = document.getElementById('letter-detail-modal');
+    const content = document.getElementById('letter-content');
+    content.innerText = currentLetter.content;
+    modal.style.display = 'flex';
+}
+
+document.getElementById('mailbox-btn').onclick = () => {
+    renderMailbox();
+    document.getElementById('mailbox-modal').style.display = 'flex';
+    document.getElementById('sidebar').classList.remove('active');
+    document.getElementById('sidebar-overlay').style.display = 'none';
+};
+
+document.getElementById('close-mailbox-modal').onclick = () => {
+    document.getElementById('mailbox-modal').style.display = 'none';
+};
+
+document.getElementById('close-letter-detail-modal').onclick = () => {
+    document.getElementById('letter-detail-modal').style.display = 'none';
+};
+
+document.getElementById('write-letter-btn').onclick = async () => {
+    if (friends.length === 0) return alert("请先添加好友");
+    const friend = friends[Math.floor(Math.random() * friends.length)];
+    
+    const btn = document.getElementById('write-letter-btn');
+    const originalText = btn.innerText;
+    btn.innerText = "撰写中...";
+    btn.disabled = true;
+
+    try {
+        const prompt = `扮演：${friend.persona}。
+请给用户写一封长信。
+要求：
+1. 情感真挚，符合你的人设。
+2. 内容必须包含对用户的关心、分享你最近的生活点滴以及对未来的期待。
+3. 字数必须在500字以上。
+4. 严禁使用括号进行动作或神态描写。
+5. 格式要像一封真正的信，有称呼和落款。`;
+
+        const content = await callAI([
+            { role: "system", content: "你是一个写信高手，请严格按照要求创作。" },
+            { role: "user", content: prompt }
+        ], false);
+        
+        const filteredContent = filterAIContent(content);
+        const newLetter = {
+            id: Date.now(),
+            from: friend.name,
+            avatar: friend.avatar,
+            persona: friend.persona,
+            content: filteredContent,
+            time: new Date().toLocaleString(),
+            friendId: friend.id
+        };
+        
+        letters.push(newLetter);
+        localStorage.setItem('xhs_letters', JSON.stringify(letters));
+        renderMailbox();
+        alert("你收到了一封新信件！");
+    } catch (e) {
+        let msg = e.message;
+        if (msg.toLowerCase().includes("quota")) msg += " (请检查 API 余额)";
+        alert("写信失败: " + msg);
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+};
+
+document.getElementById('reply-letter-btn').onclick = () => {
+    document.getElementById('reply-input-modal').style.display = 'flex';
+};
+
+document.getElementById('close-reply-input-modal').onclick = () => {
+    document.getElementById('reply-input-modal').style.display = 'none';
+};
+
+document.getElementById('send-reply-btn').onclick = async () => {
+    const text = document.getElementById('reply-text-input').value.trim();
+    if (!text) return alert("请输入回信内容");
+    if (!currentLetter) return;
+
+    const btn = document.getElementById('send-reply-btn');
+    const originalText = btn.innerText;
+    btn.innerText = "发送中...";
+    btn.disabled = true;
+
+    try {
+        const prompt = `扮演：${currentLetter.persona}。
+用户给你回了一封信，内容如下：
+“${text}”
+
+请你再次给用户回一封长信。
+要求：
+1. 针对用户回信的内容进行回应。
+2. 情感真挚，符合你的人设。
+3. 字数必须在500字以上。
+4. 严禁使用括号进行动作或神态描写。
+5. 格式要像一封真正的信，有称呼和落款。`;
+
+        const content = await callAI([
+            { role: "system", content: "你是一个写信高手，请严格按照要求创作。" },
+            { role: "user", content: prompt }
+        ], false);
+        
+        const filteredContent = filterAIContent(content);
+        const newLetter = {
+            id: Date.now(),
+            from: currentLetter.from,
+            avatar: currentLetter.avatar,
+            persona: currentLetter.persona,
+            content: filteredContent,
+            time: new Date().toLocaleString(),
+            friendId: currentLetter.friendId
+        };
+        
+        letters.push(newLetter);
+        localStorage.setItem('xhs_letters', JSON.stringify(letters));
+        
+        document.getElementById('reply-text-input').value = '';
+        document.getElementById('reply-input-modal').style.display = 'none';
+        document.getElementById('letter-detail-modal').style.display = 'none';
+        renderMailbox();
+        alert("回信已发送，你收到了一封新的回信！");
+    } catch (e) {
+        let msg = e.message;
+        if (msg.toLowerCase().includes("quota")) msg += " (请检查 API 余额)";
+        alert("发送失败: " + msg);
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+};
+    </script>
+</body>
+</html>

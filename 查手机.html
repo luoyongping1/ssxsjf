@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Persona - Touch OS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #ffffff;
+            --ins-blue: #0095f6;
+            --radius-app: 18px;
+            --radius-widget: 28px;
+            --qq-blue: #1296db;
+        }
+
+        * {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
+            touch-action: auto; 
+            box-sizing: border-box;
+        }
+        /* 允许输入框可以被点击和输入 */
+        input, textarea {
+            user-select: auto !important;
+            touch-action: auto !important;
+        }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: transparent; 
+            font-family: -apple-system, "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #wallpaper {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--bg); background-size: cover; background-position: center;
+            z-index: -1; transition: 0.5s;
+        }
+
+        /* 主屏幕网格 */
+        #home-screen {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-auto-rows: 85px;
+            grid-auto-flow: dense;
+            gap: 20px;
+            padding: 60px 25px;
+            width: 100%; height: 100%;
+        }
+
+        /* 基础项 */
+        .item {
+            position: relative;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 10;
+            transition: transform 0.2s;
+        }
+
+        .widget-2x2 { grid-column: span 2; grid-row: span 2; }
+
+        /* APP 视觉样式 */
+        .app-icon {
+            width: 65px; height: 65px;
+            border-radius: var(--radius-app);
+            background-size: cover; background-position: center;
+            background-color: #f9f9f9;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 8px;
+        }
+        .app-name { font-size: 11px; color: #262626; font-weight: 500; }
+
+        /* 组件样式 */
+        .widget-inner {
+            width: 100%; height: 100%; background: white;
+            border-radius: var(--radius-widget);
+            border: 1px solid #f2f2f2; padding: 18px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.03);
+            display: flex; flex-direction: column; justify-content: space-between;
+            overflow: hidden;
+        }
+
+        /* 编辑模式 */
+        .edit-mode .item { animation: shake 0.3s infinite; }
+        @keyframes shake {
+            0% { transform: rotate(-1.2deg); }
+            50% { transform: rotate(1.2deg); }
+            100% { transform: rotate(-1.2deg); }
+        }
+
+        .edit-badge {
+            position: absolute; top: -5px; right: -5px;
+            background: #ff3b30; color: white; border-radius: 50%;
+            width: 20px; height: 20px; font-size: 10px;
+            display: none; justify-content: center; align-items: center;
+            z-index: 20;
+        }
+        .edit-mode .edit-badge { display: flex; }
+
+        /* 正在拖拽的样式 */
+        .item.is-dragging {
+            z-index: 100;
+            opacity: 0.8;
+            transform: scale(1.1);
+            animation: none;
+            pointer-events: none;
+        }
+
+        /* 子页面 */
+        .app-page {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; z-index: 1000;
+            display: none; flex-direction: column;
+            animation: appIn 0.3s ease-out;
+        }
+        @keyframes appIn { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .nav-bar {
+            padding: calc(env(safe-area-inset-top) + 15px) 20px 15px;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            border-bottom: 1px solid #f2f2f2; 
+            font-weight: 600;
+            height: calc(65px + env(safe-area-inset-top));
+            box-sizing: border-box;
+        }
+        .ai-btn {
+            width: 36px; height: 36px;
+            background: linear-gradient(45deg, #f09433, #bc1888);
+            border-radius: 50%; color: white;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer;
+        }
+        .page-content { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 20px; 
+            -webkit-overflow-scrolling: touch; 
+            display: block;
+        }
+        .home-bar {
+            position: fixed; 
+            bottom: calc(10px + env(safe-area-inset-bottom)); 
+            left: 50%; 
+            transform: translateX(-50%);
+            width: 130px; 
+            height: 5px; 
+            background: #e0e0e0; 
+            border-radius: 10px;
+            z-index: 1100;
+        }
+
+        /* QQ 样式增强 */
+        .qq-list-item {
+            display: flex; align-items: center; padding: 15px 12px;
+            border-bottom: 1px solid #f5f5f5; cursor: pointer;
+        }
+        .qq-list-item:active { background: #f0f0f0; }
+        .qq-avatar {
+            width: 48px; height: 48px; border-radius: 50%;
+            background: var(--qq-blue); margin-right: 12px;
+            display: flex; align-items: center; justify-content: center; 
+            color: white; font-weight: bold; font-size: 18px;
+            flex-shrink: 0;
+        }
+        .qq-info { flex: 1; min-width: 0; }
+        .qq-name { font-size: 16px; font-weight: 500; color: #333; }
+        .qq-msg-preview { font-size: 13px; color: #999; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        #qq-chat-view {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #f2f2f2; display: none; flex-direction: column; z-index: 1100;
+        }
+        .chat-header {
+            padding: calc(env(safe-area-inset-top) + 15px) 15px 15px; 
+            background: #f2f2f2;
+            display: flex; align-items: center; border-bottom: 1px solid #ddd;
+            font-weight: 600;
+        }
+        .chat-messages { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            -webkit-overflow-scrolling: touch;
+        }
+        .chat-bubble {
+            max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 15px; line-height: 1.4;
+            word-wrap: break-word; position: relative;
+        }
+        .chat-bubble.friend { 
+            align-self: flex-start; background: white; color: black; 
+            border-top-left-radius: 2px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .chat-bubble.self { 
+            align-self: flex-end; background: var(--qq-blue); color: white; 
+            border-top-right-radius: 2px;
+            box-shadow: 0 2px 4px rgba(0,150,255,0.1);
+        }
+
+        .chat-input-bar {
+            padding: 10px 15px; background: #f8f8f8; display: flex; gap: 10px; align-items: center;
+            border-top: 1px solid #ddd;
+            padding-bottom: calc(10px + env(safe-area-inset-bottom));
+        }
+        .chat-input-bar input {
+            flex: 1; border: 1px solid #ddd; padding: 10px 15px; border-radius: 22px; outline: none;
+            font-size: 15px; background: white;
+        }
+        .chat-send-btn { 
+            background: var(--qq-blue); color: white; padding: 6px 15px; 
+            border-radius: 18px; font-weight: 500; cursor: pointer; font-size: 14px;
+        }
+
+        /* 其他模块样式保留... */
+        .browser-list { display: flex; flex-direction: column; gap: 12px; padding: 5px 0; }
+        .browser-item {
+            background: #ffffff; padding: 15px; border-radius: 16px; border: 1px solid #f2f2f2;
+            display: flex; align-items: flex-start; gap: 15px; transition: background 0.2s;
+        }
+        .browser-title { font-size: 14px; font-weight: 600; color: #262626; line-height: 1.4; }
+        .browser-url { font-size: 11px; color: #8e8e8e; margin-top: 4px; word-break: break-all; }
+        .browser-time { font-size: 11px; color: #c7c7c7; flex-shrink: 0; }
+        .shop-cart-list { display: flex; flex-direction: column; gap: 15px; padding-bottom: 20px; }
+        .shop-item-card { background: #ffffff; border-radius: 12px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .shop-item-main { display: flex; gap: 12px; }
+        .shop-item-img { width: 85px; height: 85px; background: #f7f7f7; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 24px; }
+        .scrapbook { background: #fffef9; border-radius: 12px; padding: 25px 20px; background-image: radial-gradient(#e5e5e5 1px, transparent 1px); background-size: 20px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); font-family: "PingFang SC", "STHeiti", cursive; color: #4a4a4a; position: relative; min-height: 100%; margin-bottom: 20px; }
+        .scrapbook-section { background: rgba(255,255,255,0.7); border: 1px dashed #d9d9d9; border-radius: 8px; padding: 15px; margin-bottom: 15px; line-height: 1.8; font-size: 15px; word-wrap: break-word; white-space: pre-wrap; }
+        .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; padding-bottom: 20px; }
+        .photo-card { aspect-ratio: 1 / 1; background: #ffffff; border-radius: 12px; border: 1px solid #f0f0f0; position: relative; cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        
+        /* 银行 App 风格钱包 */
+        .wallet-container { padding: 5px 0; }
+        .wallet-card { 
+            background: linear-gradient(135deg, #2c3e50 0%, #000000 100%); 
+            border-radius: 20px; padding: 25px; color: white; margin-bottom: 25px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); position: relative; overflow: hidden;
+        }
+        .wallet-card::after {
+            content: ''; position: absolute; top: -50%; right: -20%; width: 150px; height: 150px;
+            background: rgba(255,255,255,0.05); border-radius: 50%;
+        }
+        .wallet-label { font-size: 11px; opacity: 0.7; letter-spacing: 1px; margin-bottom: 8px; }
+        .wallet-balance-num { font-size: 30px; font-weight: 700; font-family: 'Helvetica Neue', sans-serif; }
+        .trans-section-title { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 15px; padding-left: 5px; }
+        .trans-item {
+            background: #fff; padding: 15px; border-radius: 16px; border: 1px solid #f8f8f8;
+            margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+        .trans-main { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .trans-title { font-size: 15px; font-weight: 500; color: #262626; }
+        .trans-price { font-size: 16px; font-weight: 700; color: #ff3b30; }
+        .trans-price.income { color: #34c759; }
+        .trans-time { font-size: 12px; color: #999; margin-bottom: 8px; }
+        .trans-comment { 
+            font-size: 13px; color: #666; background: #f9f9f9; padding: 10px; 
+            border-radius: 10px; line-height: 1.4; border-left: 3px solid #ddd;
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+<div id="wallpaper"></div>
+<div id="home-screen"></div>
+
+<div id="app-window" class="app-page">
+    <div class="nav-bar">
+        <i class="fas fa-times" onclick="closeApp()"></i>
+        <span id="app-title">Application</span>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <div id="diary-fav-btn" style="display:none; color: #ff4d4f; font-size: 20px; cursor: pointer;" onclick="saveCurrentDiary()"><i class="far fa-heart"></i></div>
+            <div class="ai-btn" id="ai-scan-btn" onclick="triggerAI()"><i class="fas fa-sync-alt"></i></div>
+        </div>
+    </div>
+    <div id="app-content" class="page-content"></div>
+
+    <!-- QQ 独立对话层 -->
+    <div id="qq-chat-view">
+        <div class="chat-header">
+            <i class="fas fa-chevron-left" onclick="closeQQChat()" style="margin-right:15px; cursor: pointer;"></i>
+            <span id="chat-friend-name">好友名字</span>
+        </div>
+        <div id="chat-messages" class="chat-messages"></div>
+        <div class="chat-input-bar">
+            <input type="text" id="chat-input" placeholder="输入消息..." onkeypress="if(event.keyCode==13) sendQQMsg()">
+            <div class="chat-send-btn" onclick="sendQQMsg()">发送</div>
+        </div>
+    </div>
+</div>
+
+<div id="app-appearance" class="app-page">
+    <div class="nav-bar"><i class="fas fa-times" onclick="closeApp()"></i><span>外观</span><div></div></div>
+    <div class="page-content">
+        <p>背景图片 URL</p>
+        <input type="text" id="wp-url" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px;" placeholder="https://...">
+        <button onclick="updateWallpaper()" style="margin-top:15px; width:100%; padding:12px; background:var(--ins-blue); color:white; border:none; border-radius:8px;">保存</button>
+    </div>
+</div>
+
+<div class="home-bar" onclick="closeApp()"></div>
+
+<script>
+let layout = [
+    { id: 'time', type: 'w', name: 'Time' },
+    { id: 'qq', type: 'a', name: 'QQ', icon: 'https://img.icons8.com/color/144/qq.png' },
+    { id: 'browser', type: 'a', name: '浏览器', icon: 'https://img.icons8.com/color/144/safari.png' },
+    { id: 'shop', type: 'a', name: '购物车', icon: 'https://img.icons8.com/fluency/144/shopping-cart.png' },
+    { id: 'diary', type: 'a', name: '日记', icon: 'https://img.icons8.com/fluency/144/journal.png' },
+    { id: 'photo', type: 'a', name: '相册', icon: 'https://img.icons8.com/color/144/gallery.png' },
+    { id: 'wallet', type: 'a', name: '钱包', icon: 'https://img.icons8.com/fluency/144/wallet.png' },
+    { id: 'appearance', type: 'a', name: '外观', icon: 'https://img.icons8.com/color/144/settings.png' },
+    { id: 'fav', type: 'a', name: '收藏', icon: 'https://img.icons8.com/fluency/144/filled-star.png' },
+    { id: 'mood', type: 'w', name: 'Mood' }
+];
+
+let isEditMode = false;
+let draggedEl = null;
+let startX, startY;
+let currentAppId = '';
+let currentQQFriends = [];
+let currentChatFriend = null;
+let qqChatHistories = {};
+let browserHistory = [];
+let shopCartData = [];   
+let currentDiaryData = null;
+let savedDiaries = JSON.parse(localStorage.getItem('saved_diaries')) || []; 
+let albumData = []; 
+let walletHistory = null;
+
+window.onload = () => {
+    const targetName = localStorage.getItem('target_check_name') || "手机";
+    document.title = targetName + "的手机";
+    const saved = localStorage.getItem('ai_persona_v6');
+    if(saved) {
+        const data = JSON.parse(saved);
+        layout = data.layout;
+        if(data.wallpaper) {
+            document.getElementById('wallpaper').style.backgroundImage = data.wallpaper;
+        }
+    }
+    render();
+    updateTime();
+    setInterval(updateTime, 1000);
+};
+
+function updateTime() {
+    const now = new Date();
+    const t = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+    const weeks = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+    const d = (now.getMonth() + 1) + "月" + now.getDate() + "日 " + weeks[now.getDay()];
+    const timeEl = document.querySelector('.time-val');
+    const dateEl = document.querySelector('.date-val');
+    if (timeEl) timeEl.innerText = t;
+    if (dateEl) dateEl.innerText = d;
+}
+
+function render() {
+    const screen = document.getElementById('home-screen');
+    screen.innerHTML = '';
+    if(isEditMode) screen.classList.add('edit-mode');
+    else screen.classList.remove('edit-mode');
+
+    layout.forEach((data, index) => {
+        const item = document.createElement('div');
+        item.className = data.type === 'w' ? 'item widget-2x2' : 'item';
+        item.dataset.index = index;
+        item.dataset.id = data.id;
+
+        if(data.id === 'time') {
+            item.innerHTML = `
+                <div class="widget-inner">
+                    <div>
+                        <div class="time-val" style="font-size:32px; font-weight:700;">12:00</div>
+                        <div class="date-val" style="color:#888; font-size:14px; margin-top:4px;">8月24日 星期六</div>
+                    </div>
+                    <div style="margin-top:12px; display:flex; align-items:center; gap:8px; color:#555;">
+                        <i class="fas fa-cloud-sun" style="color:#ffb800; font-size:22px;"></i>
+                        <div style="display:flex; flex-direction:column;">
+                            <span style="font-size:14px; font-weight:600;">26°C</span>
+                            <span style="font-size:11px; color:#999;">空气质量：优</span>
+                        </div>
+                    </div>
+                </div>`;
+        } else if(data.id === 'mood') {
+            item.innerHTML = `
+                <div class="widget-inner" style="background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%); padding: 15px;">
+                    <div style="color:#ff4d4f; font-weight:600; font-size:13px; margin-bottom:4px;">
+                        <i class="fas fa-heart"></i> Ta的心声
+                    </div>
+                    <div id="mood-text" style="font-size:11.5px; line-height:1.4; color:#444; font-style: italic; flex: 1; display: flex; align-items: center;">
+                        “哪怕我有千万行代码，也无法在这一刻停止对你的感激...”
+                    </div>
+                    <div id="mood-status" style="font-size:9px; color:#bbb; margin-top:4px; text-align:right; cursor:pointer;" onclick="event.stopPropagation(); refreshMood()">—— 正在感知中</div>
+                </div>`;
+        } else {
+            item.innerHTML = `
+                <div class="edit-badge" onclick="event.stopPropagation(); editIcon(${index})"><i class="fas fa-pen"></i></div>
+                <div class="app-icon" style="background-image:url('${data.icon}')"></div>
+                <div class="app-name">${data.name}</div>
+            `;
+        }
+        item.onpointerdown = (e) => onPointerDown(e, item);
+        screen.appendChild(item);
+    });
+}
+
+function onPointerDown(e, el) {
+    startX = e.clientX; startY = e.clientY;
+    let isLongPress = false;
+    let hasMoved = false;
+    const timer = setTimeout(() => { 
+        if(!hasMoved) { 
+            isLongPress = true; 
+            isEditMode = true; 
+            render(); 
+        }
+    }, 800);
+
+    el.onpointermove = (moveEvent) => {
+        const moveX = Math.abs(moveEvent.clientX - startX);
+        const moveY = Math.abs(moveEvent.clientY - startY);
+        if (moveX > 5 || moveY > 5) {
+            hasMoved = true;
+            clearTimeout(timer);
+        }
+        if (isEditMode) {
+            if (!draggedEl) { draggedEl = el; draggedEl.classList.add('is-dragging'); }
+            draggedEl.style.transform = `translate(${moveEvent.clientX - startX}px, ${moveEvent.clientY - startY}px) scale(1.1)`;
+            checkCollision(moveEvent.clientX, moveEvent.clientY);
+        }
+    };
+    el.onpointerup = el.onpointercancel = () => {
+        clearTimeout(timer);
+        if (!isLongPress && !isEditMode && !hasMoved) {
+            openApp(el.dataset.id);
+        }
+        if (draggedEl) { draggedEl.classList.remove('is-dragging'); draggedEl = null; render(); save(); }
+        el.onpointermove = null; el.onpointerup = null;
+    };
+    el.setPointerCapture(e.pointerId);
+}
+
+function checkCollision(curX, curY) {
+    document.querySelectorAll('.item').forEach(target => {
+        if (target === draggedEl) return;
+        const rect = target.getBoundingClientRect();
+        if (curX > rect.left && curX < rect.right && curY > rect.top && curY < rect.bottom) {
+            const fromIdx = parseInt(draggedEl.dataset.index);
+            const toIdx = parseInt(target.dataset.index);
+            const temp = layout[fromIdx];
+            layout.splice(fromIdx, 1);
+            layout.splice(toIdx, 0, temp);
+            draggedEl.dataset.index = toIdx;
+            render(); 
+        }
+    });
+}
+
+function openApp(id) {
+    if(id === 'time' || id === 'mood') return;
+    currentAppId = id;
+
+    // 清理逻辑：防止上个 App 残留
+    const appContent = document.getElementById('app-content');
+    appContent.innerHTML = ''; 
+    appContent.scrollTop = 0;
+    closeQQChat(); 
+    document.getElementById('diary-fav-btn').style.display = 'none';
+
+    if(id === 'appearance') {
+        document.getElementById('app-appearance').style.display = 'flex';
+        return;
+    }
+
+    document.getElementById('ai-scan-btn').style.display = 'flex';
+    document.getElementById('app-window').style.display = 'flex';
+    
+    if(id === 'qq') {
+        document.getElementById('app-title').innerText = 'QQ';
+        renderQQList();
+    } else if(id === 'browser') {
+        document.getElementById('app-title').innerText = '浏览器';
+        renderBrowserList(); 
+    } else if(id === 'shop') {
+        document.getElementById('app-title').innerText = '购物车';
+        renderShopList();
+    } else if(id === 'diary') {
+        document.getElementById('app-title').innerText = '日记';
+        document.getElementById('diary-fav-btn').style.display = 'block'; 
+        renderDiary();
+    } else if(id === 'photo') {
+        document.getElementById('app-title').innerText = '私密相册';
+        renderPhotoList();
+    } else if(id === 'wallet') {
+        document.getElementById('app-title').innerText = '我的钱包';
+        renderWallet();
+    } else if(id === 'fav') {
+        document.getElementById('app-title').innerText = '我的收藏';
+        renderCollections();
+    } else {
+        const foundApp = layout.find(a => a.id === id);
+        if(foundApp) {
+            document.getElementById('app-title').innerText = foundApp.name;
+            document.getElementById('app-content').innerHTML = '<div style="text-align:center; margin-top:50px; color:#ccc;">这里还没有数据</div>';
+        }
+    }
+}
+
+function closeApp() { 
+    document.querySelectorAll('.app-page').forEach(p => p.style.display = 'none'); 
+    document.getElementById('diary-fav-btn').style.display = 'none';
+    closeQQChat();
+}
+
+function save() { localStorage.setItem('ai_persona_v6', JSON.stringify({ layout: layout, wallpaper: document.getElementById('wallpaper').style.backgroundImage })); }
+function editIcon(idx) { const url = prompt("图标 URL:", layout[idx].icon); if(url) { layout[idx].icon = url; render(); save(); } }
+function updateWallpaper() { 
+    const url = document.getElementById('wp-url').value.trim(); 
+    if (url) { document.getElementById('wallpaper').style.backgroundImage = "url('" + url + "')"; save(); alert("壁纸更新成功！"); }
+}
+
+/* ================= QQ 核心功能 ================= */
+function renderQQList() {
+    const content = document.getElementById('app-content');
+    if (currentQQFriends.length === 0) {
+        content.innerHTML = `<div style="text-align:center; margin-top:100px; color:#999;"><i class="fas fa-lock" style="font-size:40px; margin-bottom:10px;"></i><p>QQ 已加密</p><p style="font-size:12px;">点击右上角 AI 按钮破解数据</p></div>`;
+        return;
+    }
+    content.innerHTML = currentQQFriends.map(f => {
+        const history = qqChatHistories[f.name] || [];
+        const lastMsg = history.length > 0 ? history[history.length-1].text : "无消息";
+        return `
+            <div class="qq-list-item" onclick="openQQChat('${f.name}')">
+                <div class="qq-avatar">${f.name[0]}</div>
+                <div class="qq-info">
+                    <div class="qq-name">${f.name}</div>
+                    <div class="qq-msg-preview">${f.relation}：${lastMsg}</div>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+function openQQChat(name) {
+    currentChatFriend = name;
+    document.getElementById('chat-friend-name').innerText = name;
+    document.getElementById('qq-chat-view').style.display = 'flex';
+    renderMessages();
+}
+
+function closeQQChat() { 
+    document.getElementById('qq-chat-view').style.display = 'none'; 
+}
+
+function renderMessages() {
+    const container = document.getElementById('chat-messages');
+    const history = qqChatHistories[currentChatFriend] || [];
+    container.innerHTML = history.map(m => `<div class="chat-bubble ${m.type}">${m.text}</div>`).join('');
+    container.scrollTop = container.scrollHeight;
+}
+
+async function sendQQMsg() {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+    
+    if (!qqChatHistories[currentChatFriend]) qqChatHistories[currentChatFriend] = [];
+    qqChatHistories[currentChatFriend].push({ type: 'self', text: text });
+    input.value = '';
+    renderMessages();
+
+    const aiConfig = JSON.parse(localStorage.getItem('ai_config') || '{}');
+    if (!aiConfig.key) return;
+
+    try {
+        const friendInfo = currentQQFriends.find(f => f.name === currentChatFriend) || { relation: "朋友" };
+        const res = await fetch(`${aiConfig.url.replace(/\/$/, "")}/chat/completions`, {
+            method: 'POST', headers: { 'Authorization': `Bearer ${aiConfig.key}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                model: aiConfig.model || "gpt-3.5-turbo", 
+                messages: [{ role: "user", content: `你现在是机主好友[${currentChatFriend}]（关系:${friendInfo.relation}）。机主对你说：“${text}”。请口语化简短回复，不带引号。` }] 
+            })
+        });
+        if (!res.ok) { console.error("QQ API Error:", res.status); return; }
+        const data = await res.json();
+        const replyText = (data.choices?.[0]?.message?.content || data.content || "").trim().replace(/^"(.*)"$/, '$1');
+        if (replyText) {
+            qqChatHistories[currentChatFriend].push({ type: 'friend', text: replyText });
+            renderMessages();
+        }
+    } catch (e) {
+        console.error("QQ Chat Error:", e);
+    }
+}
+
+/* ================= 核心分析逻辑 (triggerAI) ================= */
+async function triggerAI() {
+    const aiConfig = JSON.parse(localStorage.getItem('ai_config') || '{}');
+    if (!aiConfig.key) return alert("请先在主设置中通过【主页下滑-设置】配置 API Key");
+    
+    const targetName = localStorage.getItem('target_check_name') || "机主";
+    const friendsData = JSON.parse(localStorage.getItem('qq_friends')) || [];
+    const targetPersona = (friendsData.find(f => f.name === targetName) || { persona: "普通人" }).persona;
+    
+    const btn = document.getElementById('ai-scan-btn');
+    const oldBtnHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    try {
+        const url = `${aiConfig.url.replace(/\/$/, "")}/chat/completions`;
+        const headers = { 'Authorization': `Bearer ${aiConfig.key}`, 'Content-Type': 'application/json' };
+
+        if (currentAppId === 'qq') {
+            const myInfo = JSON.parse(localStorage.getItem('my_info') || '{"name":"弥酒"}');
+            const userName = myInfo.name;
+
+            // 获取 AI 生成的其他 5 个路人联系人
+            const sysPrompt = `你现在是手机取证专家，正在搜查角色[${targetName}]的手机。
+【手机主人人设】：${targetPersona}
+【手机里的联系人限制】：
+请虚构 5 位[${targetName}]手机里的其他联系人。这 5 位联系人必须严格根据【手机主人人设】中提到的社交圈、同事、朋友、仇人或家人来虚构。严禁出现[${userName}]。
+
+【取证内容要求】：
+与其他人的对话：体现机主的真实社会关系（如工作交接、朋友邀约、家人唠叨等）。每句对话的语气必须完全符合[${targetName}]的人设。
+
+【输出格式强制要求】：
+联系人名字:关系:对话1#对话2#对话3#对话4#对话5#对话6|联系人名字:关系:对话1#对话2#对话3#对话4#对话5#对话6
+(严禁解释，严禁代码块，必须输出满5人，每人6句对话，人用|隔开，话用#隔开)`;
+
+            const res = await fetch(url, {
+                method: 'POST', headers: headers,
+                body: JSON.stringify({ 
+                    model: aiConfig.model || "gpt-3.5-turbo", 
+                    messages: [{ role: "user", content: sysPrompt }] 
+                })
+            });
+
+            const data = await res.json();
+            let rawData = (data.choices?.[0]?.message?.content || data.content || "").replace(/```/g, '').trim();
+
+            currentQQFriends = [];
+            qqChatHistories = {};
+
+            // 1. 强制插入【你与角色】的真实记录
+            const realHistory = JSON.parse(localStorage.getItem('qq_history') || '{}')[targetName] || [];
+            currentQQFriends.push({ name: userName, relation: "置顶联系人" });
+            
+            // 关键逻辑：视角反转
+            // 原本的 self (你) 在查手机时变成 friend (左边白球)
+            // 原本的 friend (角色) 在查手机时变成 self (右边蓝球)
+            qqChatHistories[userName] = realHistory.slice(-6).map(m => ({
+                type: m.type === 'self' ? 'friend' : 'self', 
+                text: m.text
+            }));
+
+            // 2. 解析 AI 生成的其他路人
+            const items = rawData.split('|').filter(i => i.includes(':'));
+            items.forEach(item => {
+                const parts = item.split(':');
+                if (parts.length >= 3) {
+                    const name = parts[0].trim();
+                    const relation = parts[1].trim();
+                    const msgs = parts.slice(2).join(':').split('#').filter(m => m.trim());
+                    currentQQFriends.push({ name, relation });
+                    qqChatHistories[name] = msgs.map((text, idx) => ({
+                        type: idx % 2 === 0 ? 'friend' : 'self', text: text.trim()
+                    }));
+                }
+            });
+            renderQQList();
+        } else if (currentAppId === 'browser') {
+            const res = await fetch(url, {
+                method: 'POST', headers: headers,
+                body: JSON.stringify({ model: aiConfig.model || "gpt-3.5-turbo", messages: [{ role: "user", content: `暴露隐私：虚构8条[${targetName}]的搜索记录。人设：${targetPersona}。格式：标题|网址|时间。用#隔开。不要代码块！` }] })
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error?.message || `HTTP错误 ${res.status}`); }
+            const data = await res.json();
+            console.log("Browser AI Response:", data);
+            const content = (data.choices?.[0]?.message?.content || data.content || "").replace(/^```.*$/gm, '').replace(/```/g, '').trim();
+            browserHistory = content.split('#').filter(i => i.trim()).map(item => {
+                const p = item.split('|');
+                return { title: p[0]?.trim() || "无标题", url: p[1]?.trim() || "link", time: p[2]?.trim() || "刚刚" };
+            });
+            renderBrowserList();
+        } else if (currentAppId === 'shop') {
+            const res = await fetch(url, {
+                method: 'POST', headers: headers,
+                body: JSON.stringify({ model: aiConfig.model || "gpt-3.5-turbo", messages: [{ role: "user", content: `虚构5个[${targetName}]的私密购物清单。格式：名|价|规格|动机。用#隔开。不要代码块！` }] })
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error?.message || `HTTP错误 ${res.status}`); }
+            const data = await res.json();
+            console.log("Shop AI Response:", data);
+            const content = (data.choices?.[0]?.message?.content || data.content || "").replace(/^```.*$/gm, '').replace(/```/g, '').trim();
+            shopCartData = content.split('#').filter(i => i.trim()).map(item => {
+                const p = item.split('|');
+                return { name: p[0]?.trim(), price: p[1]?.trim(), option: p[2]?.trim(), why: p[3]?.trim() };
+            });
+            renderShopList();
+        } else if (currentAppId === 'diary') {
+            const res = await fetch(url, {
+                method: 'POST', headers: headers,
+                body: JSON.stringify({ 
+                    model: aiConfig.model || "gpt-3.5-turbo", 
+                    messages: [{ role: "user", content: `写一篇非常详尽的日记。
+人设背景：${targetPersona}。
+要求：
+1. 正文必须包含丰富的心理活动和细节，字数超过600字。
+2. 必须且只能按以下标记包裹内容（禁止代码块，禁止任何前导语）：
+[日期]内容[/日期]
+[正文]内容[/正文]
+[秘密]内容[/秘密]
+[心情]内容[/心情]` }] 
+                })
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error?.message || `HTTP错误 ${res.status}`); }
+            const data = await res.json();
+            const content = (data.choices?.[0]?.message?.content || data.content || "").trim();
+            
+            const extract = (tag) => {
+                const reg = new RegExp(`\\[${tag}\\]([\\s\\S]*?)\\[\\/${tag}\\]`);
+                return (content.match(reg)?.[1] || "").trim();
+            };
+
+            const body = extract("正文");
+            if (!body && content) {
+                // 如果标签匹配失败，尝试通过内容猜测
+                currentDiaryData = { date: "今日", body: content, secret: "暂无", mood: "平常" };
+            } else {
+                currentDiaryData = { 
+                    date: extract("日期") || "今日", 
+                    body: body, 
+                    secret: extract("秘密") || "暂无", 
+                    mood: extract("心情") || "未知" 
+                };
+            }
+            renderDiary();
+        } else if (currentAppId === 'photo') {
+            const res = await fetch(url, {
+                method: 'POST', headers: headers,
+                body: JSON.stringify({ model: aiConfig.model || "gpt-3.5-turbo", messages: [{ role: "user", content: `虚构6张彻底删除的照片描述。人设：${targetPersona}。格式：描述1#描述2#描述3... 不要代码块！` }] })
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error?.message || `HTTP错误 ${res.status}`); }
+            const data = await res.json();
+            console.log("Photo AI Response:", data);
+            const content = (data.choices?.[0]?.message?.content || data.content || "").replace(/^```.*$/gm, '').replace(/```/g, '').trim();
+            albumData = content.split('#').filter(i => i.trim()).map(desc => ({ desc: desc.trim(), flipped: false }));
+            renderPhotoList();
+        } else if (currentAppId === 'wallet') {
+            const res = await fetch(url, {
+                method: 'POST', headers: headers,
+                body: JSON.stringify({ 
+                    model: aiConfig.model || "gpt-3.5-turbo", 
+                    messages: [{ role: "user", content: `虚构机主[${targetName}]的流水。人设：${targetPersona}。
+请按照以下特殊分隔符输出，严禁任何代码块：
+总余额 >>> 项目一 @@@ 金额一 @@@ 时间一 @@@ 内心想法一 ### 项目二 @@@ 金额二 @@@ 时间二 @@@ 内心想法二 ...
+要求：
+1. 必须生成至少6条记录。
+2. 内心想法严禁输出数字，必须是基于人设的碎碎念或感悟。` }] 
+                })
+            });
+            if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error?.message || `HTTP错误 ${res.status}`); }
+            const data = await res.json();
+            const content = (data.choices?.[0]?.message?.content || data.content || "").replace(/^```.*$/gm, '').replace(/```/g, '').trim();
+            
+            const parts = content.split('>>>');
+            const balance = (parts[0] || "0.00").trim();
+            const items = (parts[1] || "").split('###').filter(i => i.trim());
+
+            walletHistory = { 
+                balance: balance, 
+                list: items.map(str => {
+                    const fields = str.split('@@@').map(f => f.trim());
+                    return { 
+                        title: fields[0] || "消费", 
+                        price: fields[1] || "0.00", 
+                        time: fields[2] || "刚刚", 
+                        comment: fields[3] || "基于人设的想法" 
+                    };
+                }) 
+            };
+            renderWallet();
+        }
+    } catch (e) {
+        console.error(e);
+        alert("取证失败：" + e.message);
+    } finally {
+        btn.innerHTML = oldBtnHtml;
+    }
+}
+
+/* ================= 其他渲染函数 (保持之前完整性) ================= */
+function renderBrowserList() {
+    document.getElementById('app-content').innerHTML = '<div class="browser-list">' + browserHistory.map(h => `<div class="browser-item"><div class="browser-icon-box"><i class="fas fa-globe"></i></div><div class="browser-info"><div class="browser-title">${h.title}</div><div class="browser-url">${h.url}</div></div><div class="browser-time">${h.time}</div></div>`).join('') + '</div>';
+}
+function renderShopList() {
+    document.getElementById('app-content').innerHTML = '<div class="shop-cart-list">' + shopCartData.map(i => `<div class="shop-item-card"><div class="shop-item-main"><div class="shop-item-img"><i class="fas fa-gift"></i></div><div class="shop-item-info"><div class="shop-item-title">${i.name}</div><div class="shop-item-option">规格: ${i.option}</div><div class="shop-item-price-row"><span class="shop-item-price">￥${i.price}</span></div></div></div><div class="shop-item-why"><b>分析:</b> ${i.why}</div></div>`).join('') + '</div>';
+}
+function renderDiary() {
+    if(!currentDiaryData) return;
+    // 移除可能存在的标签
+    const clean = t => t.replace(/\[\/?(日期|正文|秘密|心情)\]/g, '').replace(/日期：|正文：|秘密：/g, '').trim();
+    document.getElementById('app-content').innerHTML = `
+        <div class="scrapbook">
+            <div class="scrapbook-date" style="font-weight:bold; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;">
+                ${clean(currentDiaryData.date)}
+            </div>
+            <div class="scrapbook-section">
+                <span class="scrapbook-label">☁️ 碎碎念</span>
+                <div style="text-indent: 2em;">${clean(currentDiaryData.body)}</div>
+            </div>
+            <div class="scrapbook-section" style="background:#fff0f0; border-color:#ffccc7;">
+                <span class="scrapbook-label">💡 无法对Ta说出口的秘密</span>
+                <i>${clean(currentDiaryData.secret)}</i>
+            </div>
+            <div style="text-align:right; font-size:12px; color:#888; margin-top:10px;">
+                记录时的心情：<span style="color:#262626">${clean(currentDiaryData.mood)}</span>
+            </div>
+        </div>`;
+}
+function renderPhotoList() {
+    document.getElementById('app-content').innerHTML = '<div class="photo-grid">' + albumData.map((p, i) => `<div class="photo-card" onclick="togglePhoto(${i})"><div class="photo-card-inner">${p.flipped ? p.desc : '<i class="fas fa-image" style="font-size:24px; color:#ddd;"></i>'}</div></div>`).join('') + '</div>';
+}
+function togglePhoto(i) { albumData[i].flipped = !albumData[i].flipped; renderPhotoList(); }
+function renderWallet() {
+    if(!walletHistory) return;
+    const listHtml = walletHistory.list.map(t => {
+        const isIncome = !t.price.includes('-');
+        return `
+            <div class="trans-item">
+                <div class="trans-main">
+                    <span class="trans-title">${t.title}</span>
+                    <span class="trans-price ${isIncome ? 'income' : ''}">${t.price.includes('-') ? t.price : '+' + t.price}</span>
+                </div>
+                <div class="trans-time">${t.time}</div>
+                <div class="trans-comment">
+                    <i class="fas fa-quote-left" style="font-size:10px; opacity:0.3; margin-right:5px;"></i>
+                    ${t.comment}
+                </div>
+            </div>`;
+    }).join('');
+
+    document.getElementById('app-content').innerHTML = `
+        <div class="wallet-container">
+            <div class="wallet-card">
+                <div class="wallet-label">账户余额 (CNY)</div>
+                <div class="wallet-balance-num">￥ ${walletHistory.balance}</div>
+                <div style="margin-top:20px; font-size:12px; opacity:0.6;">**** **** **** ${Math.floor(Math.random()*9000+1000)}</div>
+            </div>
+            <div class="trans-section-title">收支明细</div>
+            ${listHtml || '<div style="text-align:center; color:#999; margin-top:20px;">暂无最近交易记录</div>'}
+        </div>`;
+}
+function renderCollections() {
+    document.getElementById('app-content').innerHTML = '<div class="fav-grid">' + savedDiaries.map((d, i) => `<div class="fav-card" onclick="viewSavedDiary(${i})"><div class="fav-card-date">${d.date}</div><div class="fav-card-preview">${d.body}</div></div>`).join('') + '</div>';
+}
+function viewSavedDiary(i) { currentDiaryData = savedDiaries[i]; renderDiary(); }
+function saveCurrentDiary() {
+    if(!currentDiaryData || savedDiaries.some(d => d.body === currentDiaryData.body)) return;
+    savedDiaries.unshift(currentDiaryData);localStorage.setItem('saved_diaries', JSON.stringify(savedDiaries));
+    document.querySelector('#diary-fav-btn i').classList.replace('far', 'fas');
+    alert("已收藏");
+}
+async function refreshMood() {
+    const aiConfig = JSON.parse(localStorage.getItem('ai_config') || '{}'); if(!aiConfig.key) return;
+    try {
+        const res = await fetch(`${aiConfig.url.replace(/\/$/, "")}/chat/completions`, {
+            method: 'POST', headers: { 'Authorization': `Bearer ${aiConfig.key}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                model: aiConfig.model || "gpt-3.5-turbo", 
+                messages: [{ role: "user", content: "俏皮吐槽查手机行为，20字以内。" }] 
+            })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const content = (data.choices?.[0]?.message?.content || data.content || "").trim();
+        if (content) document.getElementById('mood-text').innerText = content;
+    } catch (e) {}
+}
+</script>
+</body>
+</html>
