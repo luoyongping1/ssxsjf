@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>✨ 自律打卡 · 许愿星</title>
+<style>
+/* ==================== Ins极简美学 定义 ==================== */
+:root {
+  --bg-cream: #FAF7F0;        /* 极浅米白背景 */
+  --card-bg: #FFFFFF;         /* 奶油白卡片 */
+  --milk-tea: #F5F5F0;        /* 浅奶茶灰 */
+  --accent-blue: #B4C7E7;     /* 莫兰迪柔蓝 */
+  --accent-green: #C8E6C9;    /* 柔绿 */
+  --accent-brown: #8D6E63;    /* 暖棕强调色 */
+  --accent-gold: #E6B94A;     /* 柔和金 */
+  --text-main: #4A4A4A;       /* 深灰文字 */
+  --text-secondary: #9E9E9E;  /* 浅灰文字 */
+  --border-light: #EFEBE9;    /* 极细描边 */
+  --shadow-soft: 0 8px 30px rgba(141, 110, 99, 0.05); /* 极柔和阴影 */
+  --radius-lg: 24px;
+  --radius-sm: 12px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'PingFang SC', 'SF Pro Text', 'Inter', system-ui, sans-serif;
+  background-color: var(--bg-cream);
+  color: var(--text-main);
+  line-height: 1.6;
+  min-height: 100vh;
+  padding-bottom: 100px;
+  font-weight: 300;
+}
+
+/* ==================== 顶部区域 ==================== */
+.app-header {
+  padding: 40px 20px 30px;
+  text-align: center;
+  background: linear-gradient(to bottom, #FFFFFF, var(--bg-cream));
+}
+
+.app-header h1 {
+  font-size: 24px;
+  font-weight: 300;
+  letter-spacing: 2px;
+  color: var(--accent-brown);
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.star-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--milk-tea);
+  padding: 10px 24px;
+  border-radius: 30px;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--border-light);
+  transition: transform 0.3s ease;
+}
+
+.star-badge:active { transform: scale(0.95); }
+
+.star-icon-svg {
+  width: 22px;
+  height: 22px;
+  stroke: var(--accent-gold);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.star-count {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--accent-brown);
+}
+
+/* ==================== 页面容器 ==================== */
+.page { 
+  display: none; 
+  padding: 0 20px; 
+  animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1); 
+}
+.page.active { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==================== 通用卡片 ==================== */
+.ins-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--border-light);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--accent-brown);
+}
+
+.icon-linear {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
+
+/* ==================== 输入框与按钮 ==================== */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ins-input {
+  border: none;
+  border-bottom: 1px solid var(--border-light);
+  padding: 12px 4px;
+  font-size: 16px;
+  background: transparent;
+  outline: none;
+  transition: border-color 0.3s;
+  font-weight: 300;
+}
+
+.ins-input:focus {
+  border-bottom-color: var(--accent-blue);
+}
+
+.ins-button {
+  border: none;
+  border-radius: 30px;
+  padding: 12px 24px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 400;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+}
+
+.btn-blue { background-color: var(--accent-blue); color: white; }
+.btn-green { background-color: var(--accent-green); color: #557A56; }
+.btn-brown { background-color: var(--accent-brown); color: white; }
+
+.ins-button:active { transform: scale(0.96); opacity: 0.9; }
+
+/* ==================== 任务项 ==================== */
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 16px;
+  background: var(--milk-tea);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+}
+
+.checkbox-round {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent-blue);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.checkbox-round.checked {
+  background: var(--accent-gold);
+  border-color: var(--accent-gold);
+}
+
+.checkbox-round.checked::after {
+  content: '✓';
+  color: white;
+  font-size: 14px;
+}
+
+.task-text {
+  flex: 1;
+  font-size: 16px;
+  color: var(--text-main);
+  transition: all 0.3s;
+}
+
+.task-item.completed .task-text {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+
+.btn-delete {
+  padding: 8px;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.5;
+}
+
+.empty-tip {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  letter-spacing: 1px;
+}
+
+/* ==================== 统计区域 ==================== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-val {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--accent-brown);
+  display: block;
+}
+
+.stat-lab {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ==================== 底部导航 ==================== */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding-bottom: 20px;
+  z-index: 100;
+}
+
+.tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tab-item.active {
+  color: var(--accent-brown);
+}
+
+.tab-item span { font-size: 11px; }
+
+/* ==================== 弹窗 & Toast ==================== */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.2);
+  backdrop-filter: blur(4px);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-overlay.show { display: flex; }
+
+.toast {
+  position: fixed;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(74, 74, 74, 0.9);
+  color: white;
+  padding: 10px 24px;
+  border-radius: 30px;
+  font-size: 14px;
+  z-index: 2000;
+  display: none;
+  animation: fadeIn 0.3s;
+}
+
+/* ==================== 动画 ==================== */
+.star-sparkle {
+  position: fixed;
+  pointer-events: none;
+  animation: sparkle 0.8s ease-out forwards;
+  z-index: 999;
+}
+
+@keyframes sparkle {
+  0% { transform: scale(0) rotate(0deg); opacity: 1; }
+  100% { transform: scale(1.5) rotate(180deg); opacity: 0; }
+}
+
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>
+    <svg class="star-icon-svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    自律打卡 · 许愿星
+  </h1>
+  <div class="star-badge" id="starBadge">
+    <svg class="star-icon-svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    <span class="star-count" id="headerStarCount">0</span>
+  </div>
+</header>
+
+<div id="toast" class="toast"></div>
+
+<!-- 页面1：任务 -->
+<div class="page active" id="page-tasks">
+  <div class="ins-card">
+    <div class="card-header">
+      <svg class="icon-linear" viewBox="0 0 24 24"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+      AI 智能拆分目标
+    </div>
+    <div class="input-group">
+      <input type="text" id="goalInput" class="ins-input" placeholder="输入你的大目标，如：读完一本书">
+      <button class="ins-button btn-blue" onclick="aiSplitGoal()">🔮 开启智能拆分</button>
+    </div>
+    <div id="aiLoading" style="display:none; text-align:center; padding:15px; font-size:13px; color:var(--text-secondary);">✨ 正在构思计划中...</div>
+  </div>
+
+  <div class="ins-card">
+    <div class="card-header">
+      <svg class="icon-linear" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      手动添加任务
+    </div>
+    <div class="input-group" style="flex-direction: row; align-items: flex-end;">
+      <input type="text" id="manualTaskInput" class="ins-input" style="flex:1" placeholder="输入一个小任务...">
+      <button class="ins-button btn-green" onclick="addManualTask()">添加</button>
+    </div>
+  </div>
+
+  <div class="ins-card">
+    <div class="card-header">
+      <svg class="icon-linear" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      任务清单
+      <span id="taskStats" style="margin-left:auto; font-size:12px; font-weight:300; opacity:0.6;"></span>
+    </div>
+    <div id="taskListContainer"></div>
+  </div>
+</div>
+
+<!-- 页面：习惯 -->
+<div class="page" id="page-habits">
+  <div class="ins-card">
+    <div class="card-header">🌱 养成新习惯</div>
+    <div class="input-group">
+      <input type="text" id="habitNameInput" class="ins-input" placeholder="习惯名称，如：早起喝水">
+      <input type="text" id="habitNoteInput" class="ins-input" placeholder="备注（可选）">
+      <select id="habitFreqInput" class="ins-input" style="border:none; border-bottom:1px solid var(--border-light); background:none;">
+        <option value="daily">每天一次</option>
+        <option value="daily-multi">每天多次</option>
+        <option value="weekly">每周一次</option>
+        <option value="monthly">每月一次</option>
+      </select>
+      <button class="ins-button btn-blue" onclick="addHabit()">加入习惯库</button>
+    </div>
+  </div>
+
+  <div class="ins-card">
+    <div class="card-header">📅 今日习惯打卡</div>
+    <div id="habitListContainer"></div>
+  </div>
+</div>
+
+<!-- 页面2：奖品 -->
+<div class="page" id="page-prizes">
+  <div class="ins-card">
+    <div class="card-header">🎁 设立奖励</div>
+    <div class="input-group">
+      <input type="text" id="prizeNameInput" class="ins-input" placeholder="奖励名称">
+      <input type="number" id="prizeCostInput" class="ins-input" placeholder="所需许愿星数量">
+      <button class="ins-button btn-brown" onclick="addPrize()">放入商城</button>
+    </div>
+  </div>
+  <div class="ins-card">
+    <div class="card-header">🏪 奖励商店</div>
+    <div id="prizeListContainer"></div>
+  </div>
+</div>
+
+<!-- 页面3：成就 -->
+<div class="page" id="page-achievements">
+  <div class="ins-card">
+    <div class="card-header">🏆 成就勋章</div>
+    <div class="stat-grid">
+      <div class="stat-item"><span class="stat-val" id="statTasks">0</span><span class="stat-lab">已完成</span></div>
+      <div class="stat-item"><span class="stat-val" id="statStars">0</span><span class="stat-lab">累计星星</span></div>
+      <div class="stat-item"><span class="stat-val" id="statExchanges">0</span><span class="stat-lab">已兑换</span></div>
+    </div>
+    <button class="ins-button btn-brown" style="width:100%" onclick="showShareModal()">📤 生成成就卡片</button>
+  </div>
+  <div class="ins-card">
+    <div class="card-header">📜 兑换记录</div>
+    <div id="exchangeListContainer"></div>
+  </div>
+</div>
+
+<!-- 底部导航 -->
+<nav class="tab-bar">
+  <div class="tab-item active" onclick="switchTab(this, 'page-tasks')">
+    <svg class="icon-linear" viewBox="0 0 24 24"><path d="M12 19l7-7-7-7m-7 14l7-7-7-7"/></svg>
+    <span>任务</span>
+  </div>
+  <div class="tab-item" onclick="switchTab(this, 'page-habits')">
+    <svg class="icon-linear" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <span>习惯</span>
+  </div>
+  <div class="tab-item" onclick="switchTab(this, 'page-prizes')">
+    <svg class="icon-linear" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-14v14m0-14L4 7m16 0L4 7m0 0v10l8 4"/></svg>
+    <span>奖品</span>
+  </div>
+  <div class="tab-item" onclick="switchTab(this, 'page-achievements')">
+    <svg class="icon-linear" viewBox="0 0 24 24"><path d="M5 3v4M19 3v4M5 11h14M11 17h2M9 21h6"/></svg>
+    <span>成就</span>
+  </div>
+</nav>
+
+<!-- 弹窗 -->
+<div class="modal-overlay" id="shareModal">
+  <div class="ins-card" style="width:100%; max-width:320px;">
+    <div class="card-header">📤 成就转发</div>
+    <div id="sharePreview" style="background:var(--milk-tea); padding:15px; border-radius:12px; font-size:14px; margin-bottom:15px; white-space:pre-wrap;"></div>
+    <div style="display:flex; gap:10px">
+      <button class="ins-button btn-blue" style="flex:1" onclick="copyShareText()">复制</button>
+      <button class="ins-button" style="flex:1; background:#eee;" onclick="closeModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== 核心逻辑 ====================
+let state = {
+  stars: 0,
+  totalStarsEarned: 0,
+  tasks: [],
+  habits: [],
+  prizes: [
+    {id: 1, name: '奖励自己一杯奶茶', cost: 10},
+    {id: 2, name: '看一场电影', cost: 20}
+  ],
+  exchanges: []
+};
+
+// 数据持久化
+function init() {
+  const saved = localStorage.getItem('ins_discipline_data');
+  if (saved) {
+    state = JSON.parse(saved);
+    // 关键修复：确保旧数据加载后，habits数组依然存在
+    if (!state.habits) state.habits = [];
+  }
+  refreshUI();
+}
+
+function saveData() {
+  localStorage.setItem('ins_discipline_data', JSON.stringify(state));
+}
+
+// 任务系统
+function addManualTask() {
+  const input = document.getElementById('manualTaskInput');
+  const text = input.value.trim();
+  if (!text) return showToast("✨ 还没写任务内容哦");
+  
+  state.tasks.unshift({ id: Date.now(), text, completed: false, time: Date.now() });
+  input.value = "";
+  renderTasks();
+  saveData();
+  showToast("任务已加入清单");
+}
+
+function aiSplitGoal() {
+  const input = document.getElementById('goalInput');
+  const goal = input.value.trim();
+  if (!goal) return showToast("✨ 告诉AI你的目标吧");
+
+  document.getElementById('aiLoading').style.display = 'block';
+  
+  setTimeout(() => {
+    let subTasks = [];
+    if (goal.includes("六级") || goal.includes("英语") || goal.includes("考试")) {
+      subTasks = [`背诵 50 个核心单词`, `完成 1 套真题听力练习`, `练习 1 篇作文/翻译模板`, `分析并复盘今日错题`];
+    } else if (goal.includes("整理") || goal.includes("扫") || goal.includes("收拾") || goal.includes("房间")) {
+      subTasks = [`清空并擦拭书桌/台面`, `整理床铺并折叠衣物`, `扫地并清理地面死角`, `处理垃圾并开窗通风`];
+    } else if (goal.includes("书") || goal.includes("看") || goal.includes("读")) {
+      subTasks = [`沉浸式阅读 20 页内容`, `在空白处记录 3 个感悟点`, `整理书中的核心逻辑导图`, `合上书回想今日重点内容`];
+    } else if (goal.includes("运行") || goal.includes("健身") || goal.includes("减肥") || goal.includes("运动")) {
+      subTasks = [`进行 10 分钟热身运动`, `完成 30 分钟核心/有氧训练`, `拉伸全身肌肉 5 分钟`, `记录今日身体状态与感受`];
+    } else {
+      subTasks = [`准备工作：收集关于“${goal}”的资料`, `小试牛刀：完成“${goal}”的第一部分`, `攻坚克难：处理“${goal}”中最核心的任务`, `复盘总结：回顾“${goal}”的执行效果`];
+    }
+
+    subTasks.forEach((t, i) => {
+      state.tasks.unshift({ id: Date.now() + i, text: `✨ ${t}`, completed: false, time: Date.now() });
+    });
+
+    document.getElementById('aiLoading').style.display = 'none';
+    input.value = "";
+    showToast("AI 已为你定制计划");
+    renderTasks();
+    saveData();
+  }, 1200);
+}
+
+// 习惯系统核心逻辑
+function addHabit() {
+  const name = document.getElementById('habitNameInput').value.trim();
+  const note = document.getElementById('habitNoteInput').value.trim();
+  const freq = document.getElementById('habitFreqInput').value;
+
+  if (!name) return showToast("✨ 习惯名称不能为空哦");
+
+  const newHabit = {
+    id: Date.now(),
+    name: name,
+    note: note,
+    freq: freq,
+    lastDoneDate: "" 
+  };
+
+  state.habits.push(newHabit);
+  document.getElementById('habitNameInput').value = "";
+  document.getElementById('habitNoteInput').value = "";
+  
+  renderHabits();
+  saveData();
+  showToast("习惯已添加");
+}
+
+function renderHabits() {
+  const container = document.getElementById('habitListContainer');
+  if (!container) return;
+  
+  if (state.habits.length === 0) {
+    container.innerHTML = '<div class="empty-tip">✨ 还没有习惯，先去添加一个吧</div>';
+    return;
+  }
+
+  const today = new Date().toLocaleDateString();
+
+  container.innerHTML = state.habits.map(h => {
+    const isDoneToday = h.lastDoneDate === today;
+    return `
+      <div class="task-item ${isDoneToday ? 'completed' : ''}">
+        <div class="checkbox-round ${isDoneToday ? 'checked' : ''}" onclick="toggleHabit(${h.id}, event)"></div>
+        <div class="task-text">
+          <strong>${h.name}</strong>
+          ${h.note ? `<br><small style="color:var(--text-secondary)">${h.note}</small>` : ''}
+          <div style="font-size:10px; color:var(--accent-blue)">频率: ${formatFreq(h.freq)}</div>
+        </div>
+        <button class="btn-delete" onclick="deleteHabit(${h.id})">✕</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function formatFreq(f) {
+  const map = { 'daily': '每天一次', 'daily-multi': '每天多次', 'weekly': '每周一次', 'monthly': '每月一次' };
+  return map[f] || f;
+}
+
+function toggleHabit(id, event) {
+  const habit = state.habits.find(h => h.id === id);
+  if (!habit) return;
+
+  const today = new Date().toLocaleDateString();
+
+  if (habit.lastDoneDate !== today) {
+    habit.lastDoneDate = today;
+    state.stars++;
+    state.totalStarsEarned++;
+    createSparkle(event);
+    showToast("习惯达成！获得一星 ⭐");
+  } else {
+    habit.lastDoneDate = ""; 
+    state.stars = Math.max(0, state.stars - 1);
+    state.totalStarsEarned = Math.max(0, state.totalStarsEarned - 1);
+  }
+  
+  refreshUI();
+  saveData();
+}
+
+function deleteHabit(id) {
+  if (confirm("确定删除这个习惯吗？")) {
+    state.habits = state.habits.filter(h => h.id !== id);
+    renderHabits();
+    saveData();
+  }
+}
+
+function toggleTask(id, event) {
+  const task = state.tasks.find(t => t.id === id);
+  if (!task) return;
+
+  if (!task.completed) {
+    task.completed = true;
+    state.stars++;
+    state.totalStarsEarned++;
+    createSparkle(event);
+    showToast("获得一颗许愿星！⭐");
+  } else {
+    task.completed = false;
+    state.stars = Math.max(0, state.stars - 1);
+    state.totalStarsEarned = Math.max(0, state.totalStarsEarned - 1);
+  }
+  
+  refreshUI();
+  saveData();
+}
+
+function deleteTask(id) {
+  state.tasks = state.tasks.filter(t => t.id !== id);
+  renderTasks();
+  saveData();
+}
+
+// 奖品系统
+function addPrize() {
+  const name = document.getElementById('prizeNameInput').value.trim();
+  const cost = parseInt(document.getElementById('prizeCostInput').value);
+  if (!name || !cost) return showToast("✨ 奖励信息不完整");
+
+  state.prizes.push({ id: Date.now(), name, cost });
+  document.getElementById('prizeNameInput').value = "";
+  document.getElementById('prizeCostInput').value = "";
+  renderPrizes();
+  saveData();
+}
+
+function redeemPrize(id) {
+  const prize = state.prizes.find(p => p.id === id);
+  if (state.stars < prize.cost) return showToast("星星还不够哦，再坚持一下");
+
+  state.stars -= prize.cost;
+  state.exchanges.unshift({ id: Date.now(), name: prize.name, cost: prize.cost, time: Date.now() });
+  showToast(`成功兑换：${prize.name}`);
+  refreshUI();
+  saveData();
+}
+
+function deletePrize(id) {
+  if (confirm("确定要删除这个奖品吗？")) {
+    state.prizes = state.prizes.filter(p => p.id !== id);
+    renderPrizes();
+    saveData();
+    showToast("奖品已移除");
+  }
+}
+
+// UI 渲染
+function refreshUI() {
+  document.getElementById('headerStarCount').innerText = state.stars;
+  document.getElementById('statTasks').innerText = state.tasks.filter(t => t.completed).length;
+  document.getElementById('statStars').innerText = state.totalStarsEarned;
+  document.getElementById('statExchanges').innerText = state.exchanges.length;
+  renderTasks();
+  renderHabits();
+  renderPrizes();
+  renderExchanges();
+}
+
+function renderTasks() {
+  const container = document.getElementById('taskListContainer');
+  const stats = document.getElementById('taskStats');
+  const done = state.tasks.filter(t => t.completed).length;
+  stats.innerText = `${done} / ${state.tasks.length}`;
+
+  if (state.tasks.length === 0) {
+    container.innerHTML = '<div class="empty-tip">✨ 今天的小目标还没开始哦</div>';
+    return;
+  }
+
+  container.innerHTML = state.tasks.map(t => `
+    <div class="task-item ${t.completed ? 'completed' : ''}">
+      <div class="checkbox-round ${t.completed ? 'checked' : ''}" onclick="toggleTask(${t.id}, event)"></div>
+      <div class="task-text">${t.text}</div>
+      <button class="btn-delete" onclick="deleteTask(${t.id})">✕</button>
+    </div>
+  `).join('');
+}
+
+function renderPrizes() {
+  const container = document.getElementById('prizeListContainer');
+  if (state.prizes.length === 0) {
+    container.innerHTML = '<div class="empty-tip">✨ 商城空空如也，快去添加奖励吧</div>';
+    return;
+  }
+  container.innerHTML = state.prizes.map(p => `
+    <div class="task-item">
+      <div class="task-text">
+        <strong>${p.name}</strong><br>
+        <small style="color:var(--accent-gold)">需 ${p.cost} 颗星星</small>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button class="ins-button btn-brown" style="padding:6px 15px; font-size:12px" onclick="redeemPrize(${p.id})">兑换</button>
+        <button class="btn-delete" style="opacity: 1; font-size: 18px; padding: 5px;" onclick="deletePrize(${p.id})">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderExchanges() {
+  const container = document.getElementById('exchangeListContainer');
+  if (state.exchanges.length === 0) {
+    container.innerHTML = '<div class="empty-tip">尚无兑换记录</div>';
+    return;
+  }
+  container.innerHTML = state.exchanges.slice(0, 5).map(ex => `
+    <div style="font-size:14px; padding:10px 0; border-bottom:1px solid var(--border-light); display:flex; justify-content:space-between;">
+      <span>${ex.name}</span>
+      <span style="color:var(--text-secondary)">-${ex.cost} ⭐</span>
+    </div>
+  `).join('');
+}
+
+function switchTab(el, pageId) {
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(pageId).classList.add('active');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.innerText = msg;
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 2000);
+}
+
+function showShareModal() {
+  const text = `🌿 我的自律成就清单 🌿\n\n✅ 累计坚持任务：${state.tasks.filter(t=>t.completed).length} 次\n✨ 收集许愿星：${state.totalStarsEarned} 颗\n🎁 兑换小确幸：${state.exchanges.length} 次\n\n越努力，越治愈。`;
+  document.getElementById('sharePreview').innerText = text;
+  document.getElementById('shareModal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('shareModal').classList.remove('show'); }
+
+function copyShareText() {
+  navigator.clipboard.writeText(document.getElementById('sharePreview').innerText).then(() => {
+    showToast("成就已复制");
+    closeModal();
+  });
+}
+
+function createSparkle(e) {
+  for(let i=0; i<5; i++) {
+    const s = document.createElement('div');
+    s.className = 'star-sparkle';
+    s.innerText = '✨';
+    s.style.left = (e.clientX + (Math.random()-0.5)*40) + 'px';
+    s.style.top = (e.clientY + (Math.random()-0.5)*40) + 'px';
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 800);
+  }
+}
+
+window.onload = init;
+</script>
+
+</body>
+</html>

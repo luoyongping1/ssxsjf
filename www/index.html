@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <script>
+        const PUBLIC_VAPID_KEY = 'BO0XVLAKMy8TXgHxiGBJZxZ3cZ9AW3l7DKCVfA6obHpumKCHQt5fL0p9m4nidgNs7PCvz3OovH6XPA7RtM7o97U';
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('sw.js').then(registration => {
+                    console.log('SW 注册成功');
+                });
+            });
+        }
+    </script>
+    <title>书书小手机</title>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --glass-bg: rgba(255, 255, 255, 0.4);
+            --text-color: #555555;
+            --accent-color: #b8c6cf;
+            --glass-border: 1px solid rgba(255, 255, 255, 0.5);
+            --soft-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        }
+        body {
+            margin: 0; padding: 0; display: block; min-height: 100vh;
+            background-color: #f7f7f7; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--text-color); overflow: hidden; 
+        }
+        * { -webkit-tap-highlight-color: transparent; }
+        .phone-container {
+            width: 100%; height: 100vh; position: relative; overflow: hidden;
+            background-image: url('https://test.fukit.cn/autoupload/f/svHJcC37wJ89882deQTMqtiO_OyvX7mIgxFBfDMDErs/20260420/YkOI/660X1434/image_1776692418145.png/webp');
+            background-size: cover; background-position: center;
+        }
+        .content {
+            position: relative; z-index: 2;
+            padding: calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 120px) 20px;
+            height: 100%; width: 100%; display: grid; grid-template-columns: repeat(4, 1fr);
+            grid-auto-rows: calc((100vw - 85px) / 4 + 28px); gap: 15px; box-sizing: border-box;
+            align-content: start; overflow-y: auto; scrollbar-width: none;
+        }
+        .content::-webkit-scrollbar { display: none; }
+        .grid-item { position: relative; transition: transform 0.3s cubic-bezier(0.2, 1, 0.2, 1); touch-action: none; z-index: 2; }
+        .grid-item.dragging {
+            z-index: 9999 !important; opacity: 0.8; transform: scale(1.1);
+            position: fixed !important; pointer-events: none; transition: none;
+        }
+        .editing .grid-item { animation: wobble 0.3s infinite; }
+        @keyframes wobble { 0% { transform: rotate(-1deg); } 50% { transform: rotate(1deg); } 100% { transform: rotate(-1deg); } }
+        
+        .time-widget { grid-column: span 4; text-align: center; padding: 20px 0; margin-bottom: 20px; }
+        .clock-str { font-size: 72px; font-weight: 200; letter-spacing: -2px; }
+        .date-str { font-size: 13px; opacity: 0.8; }
+        
+        .icon-btn {
+            background: var(--glass-bg); backdrop-filter: blur(20px);
+            border: var(--glass-border); border-radius: 24px; aspect-ratio: 1/1;
+            display: flex; justify-content: center; align-items: center; 
+            background-size: cover; background-position: center; position: relative;
+            margin-bottom: 30px;
+        }
+        .icon-btn span { position: absolute; bottom: -24px; width: 100%; text-align: center; font-size: 11px; }
+        
+        .dock {
+            position: absolute; bottom: calc(20px + env(safe-area-inset-bottom));
+            left: 20px; right: 20px; height: 100px;
+            background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(35px);
+            border-radius: 38px; display: flex; justify-content: space-evenly; align-items: center;
+            z-index: 5; border: var(--glass-border);
+        }
+        .dock .icon-btn { width: 64px; height: 64px; margin: 0; margin-bottom: 12px; }
+
+        .edit-mode-controls {
+            position: fixed; top: calc(env(safe-area-inset-top) + 15px);
+            left: 0; right: 0; display: none; justify-content: space-between;
+            padding: 0 20px; z-index: 2000;
+        }
+        .edit-btn, .edit-done { 
+            background: rgba(255, 255, 255, 0.8); padding: 10px 20px; 
+            border-radius: 15px; font-weight: bold; cursor: pointer;
+        }
+
+        #app-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: none; }
+        #floating-ball {
+            position: fixed; width: 44px; height: 44px; background: #4facfe;
+            border-radius: 50%; z-index: 999; display: none; cursor: move;
+        }
+    </style>
+</head>
+<body>
+
+<div class="phone-container" id="phone-bg">
+    <div class="edit-mode-controls" id="edit-controls">
+        <div class="edit-btn">+</div>
+        <div class="edit-done" onclick="exitEditMode()">完成</div>
+    </div>
+
+    <div id="swiper-container" style="width: 100%; height: 100%; overflow: hidden;">
+        <div id="swiper-wrapper" style="display: flex; width: 200%; height: 100%; transition: transform 0.3s;">
+            <div class="content" id="main-grid" style="width: 50%;">
+                <div id="item-time" class="grid-item time-widget">
+                    <div class="date-str" id="date-display"></div>
+                    <div class="clock-str" id="clock-display">00:00</div>
+                </div>
+                <!-- 预设图标 -->
+                <div id="item-xhs" class="grid-item icon-btn" style="background-image: url('https://test.fukit.cn/autoupload/f/svHJcC37wJ89882deQTMqtiO_OyvX7mIgxFBfDMDErs/20260420/K1R2/1080X1080/image_1776692583750.png/webp');" onclick="openApp('书书小红书.html')"><span>小红书</span></div>
+                <div id="item-gacha" class="grid-item icon-btn" style="background-image: url('https://test.fukit.cn/autoupload/f/svHJcC37wJ89882deQTMqtiO_OyvX7mIgxFBfDMDErs/20260420/apFO/1080X1080/image_1776692595297.png/webp');" onclick="openApp('扭蛋机.html')"><span>扭蛋机</span></div>
+                <div id="item-check" class="grid-item icon-btn" style="background-image: url('https://test.fukit.cn/autoupload/f/svHJcC37wJ89882deQTMqtiO_OyvX7mIgxFBfDMDErs/20260420/cJUV/1080X1080/image_1776692589613.png/webp');" onclick="openApp('查手机.html')"><span>查手机</span></div>
+            </div>
+            <div class="content" id="page-2" style="width: 50%;"></div>
+        </div>
+    </div>
+
+    <div class="dock">
+        <div class="icon-btn" style="background-image: url('https://test.fukit.cn/autoupload/f/svHJcC37wJ89882deQTMqtiO_OyvX7mIgxFBfDMDErs/20260420/RNsZ/1080X1080/image_1776692575133.png/webp');"><span>世界书</span></div>
+        <div id="item-qq" class="icon-btn" style="background-image: url('https://test.fukit.cn/autoupload/f/svHJcC37wJ89882deQTMqtiO_OyvX7mIgxFBfDMDErs/20260420/vbJJ/1080X1080/image_1776692512012.png/webp');" onclick="openApp('qq.html')"><span>QQ</span></div>
+    </div>
+</div>
+
+<div id="floating-ball" onclick="closeApp()"></div>
+<div id="app-overlay"><iframe id="app-frame" style="width:100%;height:100%;border:none;"></iframe></div>
+
+<script>
+    let draggingItem = null;
+    let startX, startY, shiftX, shiftY;
+    let isEditMode = false;
+    let longPressTimer;
+    let currentPageIndex = 0;
+
+    function initGridSortable() {
+        document.addEventListener('touchstart', (e) => {
+            const item = e.target.closest('.grid-item');
+            clearTimeout(longPressTimer);
+            if (item || e.target.classList.contains('content')) {
+                longPressTimer = setTimeout(() => {
+                    isEditMode = true;
+                    document.getElementById('edit-controls').style.display = 'flex';
+                    document.querySelectorAll('.content').forEach(c => c.classList.add('editing'));
+                    if ('vibrate' in navigator) navigator.vibrate(50);
+                }, 600);
+            }
+            if (!item || item.id === 'item-time') return;
+
+            draggingItem = item;
+            const rect = item.getBoundingClientRect();
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            shiftX = startX - rect.left;
+            shiftY = startY - rect.top;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!draggingItem || !isEditMode) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            
+            if (!draggingItem.classList.contains('dragging')) {
+                draggingItem.classList.add('dragging');
+                draggingItem.style.width = '64px';
+                draggingItem.style.height = '64px';
+            }
+
+            draggingItem.style.left = (touch.clientX - shiftX) + 'px';
+            draggingItem.style.top = (touch.clientY - shiftY) + 'px';
+
+            const sw = window.innerWidth;
+            if (touch.clientX > sw - 30 && currentPageIndex === 0) {
+                currentPageIndex = 1;
+                document.getElementById('swiper-wrapper').style.transform = 'translateX(-50%)';
+                document.getElementById('page-2').appendChild(draggingItem);
+            } else if (touch.clientX < 30 && currentPageIndex === 1) {
+                currentPageIndex = 0;
+                document.getElementById('swiper-wrapper').style.transform = 'translateX(0%)';
+                document.getElementById('main-grid').appendChild(draggingItem);
+            }
+        }, {passive: false});
+
+        document.addEventListener('touchend', () => {
+            clearTimeout(longPressTimer);
+            if (!draggingItem) return;
+            draggingItem.classList.remove('dragging');
+            draggingItem.style.left = ''; draggingItem.style.top = '';
+            draggingItem.style.width = ''; draggingItem.style.height = '';
+            draggingItem = null;
+        });
+    }
+
+    function openApp(url) {
+        if (isEditMode) return;
+        const overlay = document.getElementById('app-overlay');
+        const frame = document.getElementById('app-frame');
+        const ball = document.getElementById('floating-ball');
+        frame.src = url;
+        overlay.style.display = 'block';
+        ball.style.display = 'block';
+        ball.style.left = '80%'; ball.style.top = '80%';
+    }
+
+    function closeApp() {
+        document.getElementById('app-overlay').style.display = 'none';
+        document.getElementById('floating-ball').style.display = 'none';
+        document.getElementById('app-frame').src = '';
+    }
+
+    function exitEditMode() {
+        isEditMode = false;
+        document.getElementById('edit-controls').style.display = 'none';
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('editing'));
+    }
+
+    function updateTime() {
+        const now = new Date();
+        document.getElementById('clock-display').innerText = 
+            now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        document.getElementById('date-display').innerText = 
+            (now.getMonth()+1) + '月' + now.getDate() + '日';
+    }
+
+    window.onload = () => {
+        initGridSortable();
+        setInterval(updateTime, 1000);
+        updateTime();
+    };
+</script>
+</body>
+</html>

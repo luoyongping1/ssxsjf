@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>购物商城</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1A1A1A',    /* 简约黑 */
+                        secondary: '#4A4A4A',  /* 深灰色 */
+                        neutral: '#F5F5F5',
+                        dark: '#333333'
+                    },
+                    fontFamily: {
+                        sans: ['PingFang SC', 'Microsoft YaHei', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .tab-active {
+                @apply text-primary border-b-2 border-primary font-medium;
+            }
+            .card-shadow {
+                @apply shadow-sm hover:shadow-md transition-shadow duration-300;
+            }
+            .nav-active {
+                @apply text-primary;
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral text-dark min-h-screen">
+    <!-- 页面主容器 -->
+    <div class="max-w-md mx-auto bg-white min-h-screen relative pb-20">
+        <!-- 顶部导航栏 -->
+        <div class="sticky top-0 bg-white z-30 px-4 flex items-end justify-between border-b border-gray-100" style="height: calc(55px + env(safe-area-inset-top)); padding-bottom: 12px; box-sizing: border-box;">
+            <div class="text-lg font-bold">购物商城</div>
+            <div class="flex gap-4">
+                <i class="fa fa-search text-lg cursor-pointer" onclick="switchPage('home')"></i>
+                <i class="fa fa-cog text-lg cursor-pointer" onclick="showApiModal()"></i>
+            </div>
+        </div>
+
+        <!-- 首页 -->
+        <div id="page-home" class="page block">
+            <!-- 搜索栏 -->
+            <div class="px-4 py-3">
+                <div class="relative">
+                    <input type="text" id="search-input" placeholder="输入商品按回车AI搜索" 
+                        class="w-full h-10 bg-gray-100 rounded-full px-10 outline-none text-sm"
+                        onkeydown="if(event.keyCode==13) handleAiSearch(this.value)">
+                    <i class="fa fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+            </div>
+
+            <!-- 分类标签 -->
+            <div class="flex border-b border-gray-100">
+                <div class="flex-1 text-center py-3 tab-active" id="tab-goods" onclick="switchTab('goods')">商品购物</div>
+                <div class="flex-1 text-center py-3" id="tab-takeaway" onclick="switchTab('takeaway')">外卖点餐</div>
+            </div>
+
+            <!-- 添加商品/外卖按钮 -->
+            <div class="px-4 py-3">
+                <button onclick="showAddModal()" class="w-full h-10 bg-primary text-white rounded-full flex items-center justify-center gap-2">
+                    <i class="fa fa-plus"></i>手动添加商品/外卖
+                </button>
+            </div>
+
+            <!-- 商品列表 - 网格布局 -->
+            <div id="goods-list" class="px-4 py-2 grid grid-cols-2 gap-3">
+                <div class="bg-white rounded-lg p-3 card-shadow border border-gray-100 flex flex-col justify-between">
+                    <div>
+                        <div class="font-medium text-sm line-clamp-1">经典T恤</div>
+                        <div class="text-[10px] text-gray-500 mt-1 line-clamp-2 h-7">纯棉透气，百搭款式</div>
+                    </div>
+                    <div class="mt-2">
+                        <div class="text-primary font-bold text-base">¥99.00</div>
+                        <button onclick="addToCart(1,'经典T恤',99,'纯棉透气，百搭款式')" 
+                            class="mt-2 w-full text-[10px] bg-primary/10 text-primary py-1.5 rounded-full font-medium">
+                            加入购物车
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 外卖列表 - 网格布局 -->
+            <div id="takeaway-list" class="px-4 py-2 grid grid-cols-2 gap-3 hidden">
+                <div class="bg-white rounded-lg p-3 card-shadow border border-gray-100 flex flex-col justify-between">
+                    <div>
+                        <div class="font-medium text-sm line-clamp-1">香辣汉堡套餐</div>
+                        <div class="text-[10px] text-gray-500 mt-1 line-clamp-2 h-7">汉堡+薯条+可乐</div>
+                    </div>
+                    <div class="mt-2">
+                        <div class="text-primary font-bold text-base">¥29.90</div>
+                        <button onclick="addToCart(2,'香辣汉堡套餐',29.9,'汉堡+薯条+可乐',1)" 
+                            class="mt-2 w-full text-[10px] bg-primary/10 text-primary py-1.5 rounded-full font-medium">
+                            加入购物车
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 购物车页面 -->
+        <div id="page-cart" class="page hidden p-4">
+            <div class="text-lg font-bold mb-4">购物车</div>
+            <div id="cart-list" class="space-y-3 mb-5"></div>
+            <div class="fixed bottom-16 left-0 right-0 max-w-md mx-auto bg-white p-3 border-t border-gray-100">
+                <div id="cart-coupon-info" class="text-[10px] text-gray-400 mb-1 hidden">
+                    <i class="fa fa-ticket text-red-500"></i> 已自动选择最大优惠券：-¥<span id="best-coupon-amount">0</span>
+                </div>
+                <div class="flex justify-between items-center mb-3">
+                    <div>实付：<span class="text-primary font-bold text-xl" id="cart-total">¥0.00</span></div>
+                    <div class="flex gap-2">
+                        <button onclick="payWithBalance()" class="bg-primary text-white px-4 py-2 rounded-full text-sm">余额支付</button>
+                        <button onclick="showFriendPay()" class="bg-secondary text-white px-4 py-2 rounded-full text-sm">好友代付</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 订单详情页面 -->
+        <div id="page-order" class="page hidden p-4">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="fa fa-chevron-left" onclick="switchPage('setting')"></i>
+                <div class="text-lg font-bold" id="order-title">订单列表</div>
+            </div>
+            <div id="order-content-list" class="space-y-3"></div>
+        </div>
+
+        <!-- 领券中心页面 -->
+        <div id="page-coupons" class="page hidden p-4 bg-gray-50 min-h-screen">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="fa fa-chevron-left" onclick="switchPage('setting')"></i>
+                <div class="text-lg font-bold">领券中心</div>
+            </div>
+            <div id="coupons-list" class="space-y-3">
+                <!-- 优惠券内容 -->
+            </div>
+        </div>
+
+        <!-- 我的页面 -->
+        <div id="page-setting" class="page hidden bg-gray-50 min-h-screen">
+            <!-- 个人信息头部 -->
+            <div class="bg-gradient-to-r from-primary to-secondary p-6 pb-12">
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 bg-white rounded-full border-2 border-white/50 overflow-hidden">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="avatar">
+                    </div>
+                    <div class="text-white">
+                        <div class="text-xl font-bold">书书小手机用户</div>
+                        <div class="text-xs opacity-80 mt-1">钱包余额: ¥<span id="user-balance-display">200.00</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 订单板块 -->
+            <div class="mx-4 -mt-6 bg-white rounded-xl p-4 shadow-sm relative z-10">
+                <div class="flex justify-between items-center mb-4 px-1">
+                    <div class="font-bold text-sm">我的订单</div>
+                    <div class="text-xs text-gray-400" onclick="switchPage('order')">全部订单 <i class="fa fa-angle-right"></i></div>
+                </div>
+                <div class="flex justify-between text-center">
+                    <div class="flex-1 flex flex-col items-center" onclick="openOrderSubPage('unpaid', '待支付')">
+                        <i class="fa fa-credit-card text-xl text-gray-700 block mb-1"></i>
+                        <span class="text-[10px] text-gray-600">待支付</span>
+                    </div>
+                    <div class="flex-1 flex flex-col items-center" onclick="openOrderSubPage('unreceived', '待收货')">
+                        <div class="relative inline-block mb-1">
+                            <i class="fa fa-truck text-xl text-gray-700 block"></i>
+                            <span id="badge-unreceived" class="absolute -top-1 -right-2 bg-primary text-white text-[8px] px-1 rounded-full hidden">0</span>
+                        </div>
+                        <span class="text-[10px] text-gray-600">待收货</span>
+                    </div>
+                    <div class="flex-1 flex flex-col items-center" onclick="openOrderSubPage('uncomment', '待评价')">
+                        <div class="relative inline-block mb-1">
+                            <i class="fa fa-commenting-o text-xl text-gray-700 block"></i>
+                            <span id="badge-uncomment" class="absolute -top-1 -right-2 bg-primary text-white text-[8px] px-1 rounded-full hidden">0</span>
+                        </div>
+                        <span class="text-[10px] text-gray-600">待评价</span>
+                    </div>
+                    <div class="flex-1 flex flex-col items-center" onclick="openOrderSubPage('finished', '已完成')">
+                        <i class="fa fa-check-square-o text-xl text-gray-700 block mb-1"></i>
+                        <span class="text-[10px] text-gray-600">已完成</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 其他功能列表 -->
+            <div class="mx-4 mt-4 bg-white rounded-xl overflow-hidden shadow-sm">
+                <div class="p-4 flex justify-between items-center border-b border-gray-50" onclick="alert('收货地址暂未开放')">
+                    <div class="flex items-center gap-3 text-sm"><i class="fa fa-map-marker text-blue-500"></i>收货地址</div>
+                    <i class="fa fa-angle-right text-gray-300"></i>
+                </div>
+                <div class="p-4 flex justify-between items-center border-b border-gray-50" onclick="switchPage('coupons')">
+                    <div class="flex items-center gap-3 text-sm"><i class="fa fa-ticket text-gray-600"></i>领券中心</div>
+                    <i class="fa fa-angle-right text-gray-300"></i>
+                </div>
+                <div class="p-4 flex justify-between items-center" onclick="showApiModal()">
+                    <div class="flex items-center gap-3 text-sm"><i class="fa fa-cog text-gray-500"></i>API 参数设置</div>
+                    <i class="fa fa-angle-right text-gray-300"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部导航 -->
+        <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-100 flex z-20">
+            <div id="nav-home" class="flex-1 text-center py-3 nav-item nav-active" onclick="switchPage('home')">
+                <i class="fa fa-home block text-lg"></i>
+                <div class="text-xs mt-1">首页</div>
+            </div>
+            <div id="nav-cart" class="flex-1 text-center py-3 nav-item" onclick="switchPage('cart')">
+                <i class="fa fa-shopping-cart block text-lg"></i>
+                <div class="text-xs mt-1">购物车</div>
+            </div>
+            <div id="nav-order" class="flex-1 text-center py-3 nav-item" onclick="switchPage('order')">
+                <i class="fa fa-list-alt block text-lg"></i>
+                <div class="text-xs mt-1">订单</div>
+            </div>
+            <div id="nav-setting" class="flex-1 text-center py-3 nav-item" onclick="switchPage('setting')">
+                <i class="fa fa-user block text-lg"></i>
+                <div class="text-xs mt-1">我的</div>
+            </div>
+        </div>
+
+        <!-- API设置弹窗 -->
+        <div id="api-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center">
+            <div class="bg-white rounded-lg w-4/5 p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="text-lg font-bold">API 参数设置</div>
+                    <i class="fa fa-times text-gray-400" onclick="closeApiModal()"></i>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-sm block mb-1">API地址</label>
+                        <input type="text" id="api-url" class="w-full h-10 border border-gray-200 rounded-lg px-3 outline-none text-sm"
+                            placeholder="https://api.openai.com/v1">
+                    </div>
+                    <div>
+                        <label class="text-sm block mb-1">API密钥</label>
+                        <input type="password" id="api-key" class="w-full h-10 border border-gray-200 rounded-lg px-3 outline-none text-sm"
+                            placeholder="sk-xxxx">
+                    </div>
+                    <div>
+                        <label class="text-sm block mb-1">模型选择</label>
+                        <select id="ai-model" class="w-full h-10 border border-gray-200 rounded-lg px-3 outline-none text-sm">
+                            <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                        </select>
+                    </div>
+                    <button onclick="fetchModels()" id="fetch-btn" class="w-full h-10 border border-primary text-primary rounded-lg text-sm font-medium">拉取模型</button>
+                    <button onclick="saveApiSetting()" class="w-full h-10 bg-primary text-white rounded-lg text-sm font-medium">保存设置</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加商品弹窗 -->
+        <div id="add-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center">
+            <div class="bg-white rounded-lg w-4/5 p-4">
+                <div class="text-lg font-bold mb-4">添加商品/外卖</div>
+                <div class="space-y-3 mb-4">
+                    <input type="text" id="add-name" placeholder="商品/外卖名称" class="w-full h-10 border border-gray-200 rounded-lg px-3">
+                    <input type="number" id="add-price" placeholder="价格" class="w-full h-10 border border-gray-200 rounded-lg px-3">
+                    <input type="text" id="add-desc" placeholder="描述（可选）" class="w-full h-10 border border-gray-200 rounded-lg px-3">
+                    <div class="flex gap-3">
+                        <label class="flex items-center gap-1"><input type="radio" name="add-type" value="0" checked>商品</label>
+                        <label class="flex items-center gap-1"><input type="radio" name="add-type" value="1">外卖</label>
+                    </div>
+                </div>
+                <div class="flex gap-3 justify-end">
+                    <button onclick="closeAddModal()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm">取消</button>
+                    <button onclick="addGoodsOrTakeaway()" class="px-4 py-2 bg-primary text-white rounded-lg text-sm">确认添加</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 好友代付弹窗 -->
+        <div id="friend-pay-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center">
+            <div class="bg-white rounded-lg w-4/5 p-4 max-h-[80vh] overflow-y-auto">
+                <div class="text-lg font-bold mb-4">选择好友代付</div>
+                <div id="friend-list" class="space-y-2 mb-4">
+                    <div class="p-3 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50" 
+                        onclick="sendPayRequest(1,'小明')">小明</div>
+                    <div class="p-3 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50" 
+                        onclick="sendPayRequest(2,'小红')">小红</div>
+                </div>
+                <button onclick="closeFriendPay()" class="w-full h-10 border border-gray-200 rounded-lg">关闭</button>
+            </div>
+        </div>
+
+        <!-- 代付卡片1：我请求他人代付 -->
+        <div id="pay-request-card" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4/5 bg-white rounded-xl p-5 z-60 hidden shadow-2xl">
+            <div class="text-center mb-3">
+                <i class="fa fa-money text-4xl text-primary"></i>
+            </div>
+            <div class="text-center font-bold text-lg mb-2">代付请求</div>
+            <div class="text-center text-sm mb-4">请帮我支付该订单，非常感谢！</div>
+            <div class="text-center text-primary font-bold text-xl mb-4" id="request-money">¥0.00</div>
+            <div class="flex justify-center gap-3">
+                <button class="px-4 py-2 bg-gray-100 rounded-full text-sm" onclick="closePayRequestCard()">关闭</button>
+            </div>
+        </div>
+
+        <!-- 代付卡片2：代付成功 -->
+        <div id="pay-success-card" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4/5 bg-white rounded-xl p-5 z-60 hidden shadow-2xl">
+            <div class="text-center mb-3">
+                <i class="fa fa-check-circle text-4xl text-green-500"></i>
+            </div>
+            <div class="text-center font-bold text-lg mb-2">代付成功</div>
+            <div class="text-center text-sm mb-4">已为对方完成代付，交易完成</div>
+            <div class="text-center text-primary font-bold text-xl mb-4">¥0.00</div>
+            <div class="flex justify-center">
+                <button class="px-4 py-2 bg-green-500 text-white rounded-full text-sm" onclick="closePaySuccessCard()">完成</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局数据
+        let currentPage = 'home';
+        let currentTab = 'goods';
+        let cartList = [];
+        let unreceivedOrders = [];
+        let uncommentOrders = [];
+        let userCoupons = JSON.parse(localStorage.getItem('userCoupons') || '[]');
+        let apiConfig = {
+            url: localStorage.getItem('apiUrl') || '',
+            key: localStorage.getItem('apiKey') || '',
+            model: localStorage.getItem('aiModel') || 'gpt-3.5-turbo'
+        };
+
+        // 钱包余额
+        let userWallet = {
+            balance: parseFloat(localStorage.getItem('walletBalance')) || 200.00
+        };
+
+        // 页面切换
+        function switchPage(page) {
+            document.querySelectorAll('.page').forEach(el => el.classList.add('hidden'));
+            document.getElementById('page-' + page).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('nav-active'));
+            const nav = document.getElementById('nav-' + page);
+            if(nav) nav.classList.add('nav-active');
+            
+            currentPage = page;
+            if(page === 'setting') {
+                document.getElementById('user-balance-display').innerText = userWallet.balance.toFixed(2);
+                updateBadges();
+            }
+            if(page === 'coupons') renderCoupons();
+            if(page === 'cart') renderCart();
+        }
+
+        // 淘宝风格订单子页面跳转
+        function openOrderSubPage(type, title) {
+            switchPage('order');
+            document.getElementById('order-title').innerText = title;
+            renderOrderContent(type);
+        }
+
+        function renderOrderContent(type) {
+            const listContainer = document.getElementById('order-content-list');
+            let html = '';
+            if(type === 'unreceived') {
+                unreceivedOrders.forEach((order, index) => {
+                    html += `<div class="bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
+                        <div class="text-xs text-gray-400 mb-2">订单号：${order.id}</div>
+                        <div class="font-medium text-sm">订单时间：${order.time}</div>
+                        <div class="text-primary font-bold mt-1 text-lg">¥${order.total.toFixed(2)}</div>
+                        <div class="text-[10px] text-gray-400 mt-1">包含 ${order.items.length} 件商品</div>
+                        <div class="flex justify-end mt-2">
+                            <button onclick="confirmReceive(${index})" class="text-xs bg-primary text-white px-4 py-1.5 rounded-full">确认收货</button>
+                        </div>
+                    </div>`;
+                });
+            } else if(type === 'uncomment') {
+                uncommentOrders.forEach((order, index) => {
+                    html += `<div class="bg-white rounded-lg p-3 border border-gray-100 shadow-sm">
+                        <div class="text-xs text-gray-400 mb-2">订单号：${order.id}</div>
+                        <div class="font-medium text-sm">待评价订单</div>
+                        <div class="text-primary font-bold mt-1 text-lg">¥${order.total.toFixed(2)}</div>
+                        <div class="flex justify-end mt-2">
+                            <button onclick="generateComment(this, ${index})" class="text-xs bg-blue-500 text-white px-4 py-1.5 rounded-full">评价</button>
+                        </div>
+                    </div>`;
+                });
+            } else {
+                html = `<div class="text-center py-20 text-gray-300 text-sm">该模块订单数据开发中...</div>`;
+            }
+            listContainer.innerHTML = html || `<div class="text-center py-20 text-gray-300 text-sm">暂无相关订单</div>`;
+        }
+
+        function updateBadges() {
+            const unreceivedCount = unreceivedOrders.length;
+            const uncommentCount = uncommentOrders.length;
+            const b1 = document.getElementById('badge-unreceived');
+            const b2 = document.getElementById('badge-uncomment');
+            
+            if(unreceivedCount > 0) { b1.innerText = unreceivedCount; b1.classList.remove('hidden'); }
+            else { b1.classList.add('hidden'); }
+            
+            if(uncommentCount > 0) { b2.innerText = uncommentCount; b2.classList.remove('hidden'); }
+            else { b2.classList.add('hidden'); }
+        }
+
+        // 渲染优惠券中心
+        function renderCoupons() {
+            const container = document.getElementById('coupons-list');
+            if (userCoupons.length === 0) {
+                container.innerHTML = `<div class="text-center py-20 text-gray-300 text-sm">目前没有任何优惠券</div>`;
+                return;
+            }
+            container.innerHTML = userCoupons.map((c, i) => `
+                <div class="bg-white border-l-4 border-red-500 rounded-lg p-4 flex justify-between items-center shadow-sm">
+                    <div>
+                        <div class="text-red-500 font-bold text-xl">¥${c.amount} 优惠券</div>
+                        <div class="text-[10px] text-gray-400 mt-1">评价奖励券 | 全场通用</div>
+                    </div>
+                    <div class="text-[10px] bg-red-50 text-red-500 px-2 py-1 rounded">待使用</div>
+                </div>
+            `).join('');
+        }
+
+        // 获取当前面额最大的优惠券
+        function getBestCoupon() {
+            if (userCoupons.length === 0) return null;
+            let best = userCoupons[0];
+            let bestIndex = 0;
+            for (let i = 1; i < userCoupons.length; i++) {
+                if (userCoupons[i].amount > best.amount) {
+                    best = userCoupons[i];
+                    bestIndex = i;
+                }
+            }
+            return { coupon: best, index: bestIndex };
+        }
+
+        // 首页分类切换
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-goods').classList.remove('tab-active');
+            document.getElementById('tab-takeaway').classList.remove('tab-active');
+            document.getElementById('goods-list').classList.add('hidden');
+            document.getElementById('takeaway-list').classList.add('hidden');
+            
+            document.getElementById('tab-' + tab).classList.add('tab-active');
+            document.getElementById(tab + '-list').classList.remove('hidden');
+        }
+
+        // AI搜索功能 - 优化生成6个商品提示词
+        async function handleAiSearch(keyword) {
+            if(!keyword.trim()) return;
+            if(!apiConfig.url || !apiConfig.key) return alert('请先设置有效的API参数');
+
+            const goodsList = document.getElementById('goods-list');
+            const takeawayList = document.getElementById('takeaway-list');
+            
+            const loadingHtml = `<div id="search-loading" class="col-span-2 text-center py-10 text-gray-400 text-sm"><i class="fa fa-spinner fa-spin mr-2"></i>AI 正在为您搜罗商品...</div>`;
+            if(currentTab === 'goods') goodsList.innerHTML = loadingHtml;
+            else takeawayList.innerHTML = loadingHtml;
+
+            try {
+                const response = await fetch(`${apiConfig.url.replace(/\/$/, '')}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiConfig.key}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: apiConfig.model,
+                        messages: [{
+                            role: "system",
+                            content: "你是一个专业的商品搜索生成引擎。请严格按照用户的关键词，生成并返回**正好6个**相关的虚拟商品信息。严格按以下JSON数组格式返回，禁止MarkDown标签，禁止任何解释：[{\"name\":\"名称\",\"price\":数字,\"desc\":\"详细吸引人的描述\",\"isTakeaway\":0或1}]。isTakeaway为0表示普通商品，1表示外卖。确保商品价格合理且描述多样化。"
+                        }, {
+                            role: "user",
+                            content: `搜索关键词：${keyword}`
+                        }],
+                        temperature: 0.8
+                    })
+                });
+
+                const data = await response.json();
+                let result = data.choices[0].message.content;
+                const jsonMatch = result.match(/\[.*\]/s);
+                if (jsonMatch) {
+                    const items = JSON.parse(jsonMatch[0]);
+                    goodsList.innerHTML = '';
+                    takeawayList.innerHTML = '';
+                    
+                    items.forEach(item => {
+                        const id = Math.random().toString(36).substr(2, 9);
+                        const html = `
+                        <div class="bg-white rounded-lg p-3 card-shadow border border-gray-100 flex flex-col justify-between animate-pulse-once">
+                            <div>
+                                <div class="font-medium text-sm line-clamp-1">${item.name}</div>
+                                <div class="text-[10px] text-gray-500 mt-1 line-clamp-2 h-7">${item.desc}</div>
+                            </div>
+                            <div class="mt-2">
+                                <div class="text-primary font-bold text-base">¥${item.price.toFixed(2)}</div>
+                                <button onclick="addToCart('${id}','${item.name}',${item.price},'${item.desc}',${item.isTakeaway})" 
+                                    class="mt-2 w-full text-[10px] bg-primary/10 text-primary py-1.5 rounded-full font-medium">
+                                    加入购物车
+                                </button>
+                            </div>
+                        </div>`;
+                        if(item.isTakeaway == 1) takeawayList.insertAdjacentHTML('beforeend', html);
+                        else goodsList.insertAdjacentHTML('beforeend', html);
+                    });
+                }
+            } catch (error) {
+                console.error(error);
+                alert('AI 搜索失败，请检查 API 配置');
+            } finally {
+                const loading = document.getElementById('search-loading');
+                if(loading) loading.remove();
+            }
+        }
+
+        // API设置弹窗
+        function showApiModal() {
+            document.getElementById('api-modal').classList.remove('hidden');
+        }
+        function closeApiModal() {
+            document.getElementById('api-modal').classList.add('hidden');
+        }
+
+        // 拉取模型
+        async function fetchModels() {
+            const url = document.getElementById('api-url').value;
+            const key = document.getElementById('api-key').value;
+            const fetchBtn = document.getElementById('fetch-btn');
+            if(!url || !key) return alert('请先填写API地址和密钥');
+            fetchBtn.innerText = '正在拉取...';
+            try {
+                const response = await fetch(`${url.replace(/\/$/, '')}/models`, {
+                    headers: { 'Authorization': `Bearer ${key}` }
+                });
+                const data = await response.json();
+                const select = document.getElementById('ai-model');
+                select.innerHTML = '';
+                const models = data.data || data;
+                if(Array.isArray(models)) {
+                    models.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.id; opt.innerText = m.id;
+                        if(m.id === apiConfig.model) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                    alert('模型拉取成功');
+                }
+            } catch (error) {
+                alert('模型拉取失败，请检查参数');
+            } finally {
+                fetchBtn.innerText = '拉取模型';
+            }
+        }
+
+        function saveApiSetting() {
+            apiConfig.url = document.getElementById('api-url').value;
+            apiConfig.key = document.getElementById('api-key').value;
+            apiConfig.model = document.getElementById('ai-model').value;
+            localStorage.setItem('apiUrl', apiConfig.url);
+            localStorage.setItem('apiKey', apiConfig.key);
+            localStorage.setItem('aiModel', apiConfig.model);
+            alert('设置保存成功');
+            closeApiModal();
+        }
+
+        function showAddModal() {
+            document.getElementById('add-modal').classList.remove('hidden');
+        }
+        function closeAddModal() {
+            document.getElementById('add-modal').classList.add('hidden');
+        }
+
+        function addGoodsOrTakeaway() {
+            const name = document.getElementById('add-name').value;
+            const price = parseFloat(document.getElementById('add-price').value);
+            const desc = document.getElementById('add-desc').value || '暂无描述';
+            const type = document.querySelector('input[name="add-type"]:checked').value;
+            if(!name || !price || price <= 0) return alert('请填写正确信息');
+            const id = Date.now();
+            const html = `
+            <div class="bg-white rounded-lg p-3 card-shadow border border-gray-100 flex flex-col justify-between">
+                <div>
+                    <div class="font-medium text-sm line-clamp-1">${name}</div>
+                    <div class="text-[10px] text-gray-500 mt-1 line-clamp-2 h-7">${desc}</div>
+                </div>
+                <div class="mt-2">
+                    <div class="text-primary font-bold text-base">¥${price.toFixed(2)}</div>
+                    <button onclick="addToCart('${id}','${name}',${price},'${desc}',${type})" 
+                        class="mt-2 w-full text-[10px] bg-primary/10 text-primary py-1.5 rounded-full font-medium">
+                        加入购物车
+                    </button>
+                </div>
+            </div>`;
+            type == 0 ? document.getElementById('goods-list').insertAdjacentHTML('afterbegin', html) 
+                      : document.getElementById('takeaway-list').insertAdjacentHTML('afterbegin', html);
+            closeAddModal();
+        }
+
+        function addToCart(id,name,price,desc,isTakeaway=0) {
+            cartList.push({id,name,price,desc,isTakeaway});
+            renderCart();
+            alert('已加入购物车');
+        }
+
+        function renderCart() {
+            let html = '';
+            let rawTotal = 0;
+            cartList.forEach((item,index) => {
+                rawTotal += item.price;
+                html += `
+                <div class="bg-white rounded-lg p-3 border border-gray-100 flex justify-between items-center">
+                    <div>
+                        <div class="font-medium text-sm">${item.name} <span class="text-[10px] text-gray-400">${item.isTakeaway?'[外卖]':'[商品]'}</span></div>
+                        <div class="text-primary font-bold">¥${item.price.toFixed(2)}</div>
+                    </div>
+                    <i class="fa fa-trash-o text-gray-300" onclick="removeFromCart(${index})"></i>
+                </div>`;
+            });
+            document.getElementById('cart-list').innerHTML = html || `<div class="text-center py-20 text-gray-300 text-sm">购物车空空如也</div>`;
+            
+            const best = getBestCoupon();
+            const couponInfo = document.getElementById('cart-coupon-info');
+            let finalTotal = rawTotal;
+
+            if (best && rawTotal > 0) {
+                finalTotal = Math.max(0, rawTotal - best.coupon.amount);
+                document.getElementById('best-coupon-amount').innerText = best.coupon.amount;
+                couponInfo.classList.remove('hidden');
+            } else {
+                couponInfo.classList.add('hidden');
+            }
+
+            document.getElementById('cart-total').innerHTML = `¥${finalTotal.toFixed(2)}`;
+            localStorage.setItem('cartTotal', finalTotal);
+            localStorage.setItem('rawTotal', rawTotal);
+        }
+
+        function removeFromCart(index) {
+            cartList.splice(index,1);
+            renderCart();
+        }
+
+        function payWithBalance() {
+            const finalTotal = parseFloat(localStorage.getItem('cartTotal')) || 0;
+            if(cartList.length === 0) return alert('购物车为空');
+            if(userWallet.balance < finalTotal) return alert('余额不足');
+            
+            userWallet.balance -= finalTotal;
+            localStorage.setItem('walletBalance', userWallet.balance);
+            
+            const best = getBestCoupon();
+            if (best && parseFloat(localStorage.getItem('rawTotal')) > 0) {
+                userCoupons.splice(best.index, 1);
+                localStorage.setItem('userCoupons', JSON.stringify(userCoupons));
+            }
+
+            unreceivedOrders.push({
+                id: 'ORD'+Date.now(),
+                total: finalTotal,
+                items: [...cartList],
+                time: new Date().toLocaleString()
+            });
+
+            cartList = [];
+            renderCart();
+            alert(`支付成功！实付¥${finalTotal.toFixed(2)}，订单已进入待收货`);
+            switchPage('setting');
+        }
+
+        function confirmReceive(index) {
+            uncommentOrders.push(unreceivedOrders[index]);
+            unreceivedOrders.splice(index,1);
+            alert('确认收货成功');
+            renderOrderContent('unreceived');
+            updateBadges();
+        }
+
+        // AI生成评价 - 优化提示词与状态交互
+        async function generateComment(btn, index) {
+            const order = uncommentOrders[index];
+            const originalText = "评价";
+            
+            // 切换按钮状态
+            btn.innerText = "正在评价中...";
+            btn.disabled = true;
+            btn.style.opacity = "0.7";
+
+            let res = "这个商品真的很不错，性价比非常高，包装也很精美，物流速度快得惊人，非常满意的一次购物体验，以后还会回购的！";
+            
+            if(apiConfig.url && apiConfig.key) {
+                try {
+                    const response = await fetch(`${apiConfig.url.replace(/\/$/, '')}/chat/completions`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${apiConfig.key}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: apiConfig.model,
+                            messages: [{
+                                role: "system",
+                                content: "你是一个真实的电商买家。请针对订单写一段评价。要求：字数务必在40-60字之间。语气要像普通人，包含质量、物流等真实感受。禁止输出任何提示词内容、禁止输出MarkDown格式、禁止输出任何前缀（如'评价如下：'）、禁止输出任何关于你是AI的废话。直接输出评价原文。"
+                            }, {
+                                role: "user",
+                                content: `为一笔金额为${order.total}元的订单生成评价。`
+                            }],
+                            temperature: 0.7
+                        })
+                    });
+                    const data = await response.json();
+                    res = data.choices[0].message.content.replace(/^["'评价：: \n]+|["'评价：: \n]+$/g, '');
+                } catch (e) { console.error("AI评价调用失败"); }
+            }
+            
+            // 恢复按钮状态（虽然后面会刷新列表，但为了严谨这里保持逻辑完整）
+            btn.innerText = originalText;
+            btn.disabled = false;
+            btn.style.opacity = "1";
+
+            alert('AI 自动评价：\n' + res);
+            uncommentOrders.splice(index,1);
+            renderOrderContent('uncomment');
+            updateBadges();
+            
+            const couponAmount = Math.floor(Math.random()*15) + 5;
+            const newCoupon = { id: Date.now(), amount: couponAmount };
+            userCoupons.push(newCoupon);
+            localStorage.setItem('userCoupons', JSON.stringify(userCoupons));
+            alert(`评价成功！获得 ¥${couponAmount} 优惠券，已存入领券中心。`);
+        }
+
+        function showFriendPay() {
+    const total = parseFloat(localStorage.getItem('cartTotal')) || 0;
+    if(total <= 0) return alert('购物车为空');
+    
+    // 获取 QQ 里的真实好友列表
+    const friends = JSON.parse(localStorage.getItem('qq_friends')) || [];
+    const friendListContainer = document.getElementById('friend-list');
+    
+    if (friends.length === 0) {
+        friendListContainer.innerHTML = '<div class="p-3 text-gray-400 text-center text-sm">QQ 里还没有好友哦</div>';
+    } else {
+        friendListContainer.innerHTML = friends.map(f => `
+            <div class="p-3 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50 flex items-center gap-3" 
+                onclick="sendPayRequest(0, '${f.name}')">
+                <div class="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
+                    ${f.avatarUrl ? `<img src="${f.avatarUrl}" class="w-full h-full object-fit-cover">` : `<div class="flex items-center justify-center h-full text-xs">${f.initial}</div>`}
+                </div>
+                <div class="font-medium text-sm">${f.name}</div>
+            </div>
+        `).join('');
+    }
+    
+    document.getElementById('friend-pay-modal').classList.remove('hidden');
+}
+        function closeFriendPay() {
+            document.getElementById('friend-pay-modal').classList.add('hidden');
+        }
+
+        function sendPayRequest(id, name) {
+    const finalTotal = parseFloat(localStorage.getItem('cartTotal')) || 0;
+    const itemNames = cartList.map(item => item.name).join('、');
+    
+    // 1. 获取最新的聊天记录
+    let histories = JSON.parse(localStorage.getItem('qq_history') || '{}');
+    if (!histories[name]) histories[name] = [];
+    
+    // 2. 添加代付消息对象
+    histories[name].push({
+        type: 'self', 
+        text: finalTotal.toFixed(2),
+        isShoppingPay: true, 
+        payItems: itemNames,
+        payStatus: 'pending',
+        time: new Date().getTime()
+    });
+    
+    // 3. 更新好友列表里的“最后一条消息”预览
+    let qqFriends = JSON.parse(localStorage.getItem('qq_friends') || '[]');
+    let targetFriend = qqFriends.find(f => f.name === name);
+    if (targetFriend) {
+        targetFriend.lastMsg = "[找你代付] ￥" + finalTotal.toFixed(2);
+    }
+
+    // 4. 立即保存回存储
+    localStorage.setItem('qq_history', JSON.stringify(histories));
+    localStorage.setItem('qq_friends', JSON.stringify(qqFriends));
+
+    // 5. 提示并跳转
+    closeFriendPay();
+    alert('代付请求已发送给 ' + name + '！请切换到 QQ 窗口查看。');
+    switchPage('home');
+}
+
+        function finishFriendPay() {
+            const finalTotal = parseFloat(localStorage.getItem('cartTotal')) || 0;
+            document.getElementById('pay-request-card').classList.add('hidden');
+            
+            const best = getBestCoupon();
+            if (best && parseFloat(localStorage.getItem('rawTotal')) > 0) {
+                userCoupons.splice(best.index, 1);
+                localStorage.setItem('userCoupons', JSON.stringify(userCoupons));
+            }
+
+            unreceivedOrders.push({
+                id: 'PAY'+Date.now(),
+                total: finalTotal,
+                items: [...cartList],
+                time: new Date().toLocaleString()
+            });
+
+            cartList = [];
+            renderCart();
+            document.getElementById('pay-success-card').querySelector('.text-xl').innerHTML = `¥${finalTotal.toFixed(2)}`;
+            document.getElementById('pay-success-card').classList.remove('hidden');
+        }
+
+        function closePayRequestCard() { document.getElementById('pay-request-card').classList.add('hidden'); }
+        function closePaySuccessCard() { 
+            document.getElementById('pay-success-card').classList.add('hidden');
+            switchPage('setting');
+        }
+
+        window.onload = function() {
+            document.getElementById('api-url').value = apiConfig.url;
+            document.getElementById('api-key').value = apiConfig.key;
+            const select = document.getElementById('ai-model');
+            if(apiConfig.model && apiConfig.model !== 'gpt-3.5-turbo') {
+                const opt = document.createElement('option');
+                opt.value = apiConfig.model; opt.innerText = apiConfig.model;
+                opt.selected = true; select.appendChild(opt);
+            }
+            renderCart();
+            updateBadges();
+        }
+    </script>
+</body>
+</html>
